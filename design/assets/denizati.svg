@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Denizatı"><g stroke="#342F2C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m57 35-17 3 10 12-13 9 14 8-12 11 15 6" fill="#D4AA6C"/>
+    <path d="m76 14-7-7-8 13c-16 5-21 21-14 35l8 10c5 8 4 12 12 20 7 9 6 18-3 22-9 4-17-2-17-8 0-5 6-7 10-3 3-12-13-17-20-7-12 18 10 38 30 29 18-7 23-23 13-39-7-12-9-17-3-28l25 1 9-12-21-11c0-12-5-18-14-17Z" fill="#62A9A5"/>
+    <path d="M67 53c-6 9-2 21 6 31 11 16 9 27-7 34" fill="none" stroke="#386F74" stroke-width="3"/>
+    <path d="m52 58 12 3m-10 7 10 2m-6 7 10 2" fill="none" stroke="#D1DFC1" stroke-width="3"/>
+    <path d="m79 54 14 9-15 10" fill="#D4AA6C"/>
+    <path d="m99 36 8 4-4 6h-8" fill="#91C4B5" stroke-width="2"/>
+    <circle cx="77" cy="31" r="4.5" fill="#342F2C" stroke="none"/><circle cx="78" cy="29.8" r="1.25" fill="#FFFCF3" stroke="none"/>
+  </g></svg>

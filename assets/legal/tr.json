@@ -1,0 +1,223 @@
+{
+  "version": "2026-11-09",
+  "documents": [
+    {
+      "id": "privacy",
+      "slug": "gizlilik",
+      "title": "Gizlilik Politikası",
+      "intro": "Bu metin, IQUM'u kullanırken hangi bilgilerin işlendiğini, neden kullanıldığını ve verilerin üzerindeki seçeneklerini açıklar.",
+      "sections": [
+        {
+          "title": "1. Sorumlu ve iletişim",
+          "paragraphs": [
+            "IQUM'un işletmecisi ve veri sorumlusu: {{legalName}}. İletişim adresi: {{contactAddress}}. Gizlilik, veri erişimi ve silme talepleri için: {{supportEmail}}.",
+            "Yürürlük ve son güncelleme: 9 Kasım 2026. Güncel metin uygulamanın Bilgilendirme bölümünde ve {{privacyUrl}} adresinde bulunur."
+          ]
+        },
+        {
+          "title": "2. Misafir olarak oynama",
+          "paragraphs": [
+            "Üç tek oyunculu oyun için hesap açmak gerekmez. Leveller, can durumu, rekorlar, yarım kalan oyunlar, ses ve titreşim tercihleri cihazında saklanır. Hesap açılmadıkça bu oyun kayıtları hesabına yüklenmez.",
+            "İnternet bağlantısı olduğunda uygulama güvenliği ve doğru zamanın alınması için Firebase'e teknik istek yapılabilir. Bu yüzden misafir kullanımında hiçbir verinin cihaz dışına çıkmadığı iddia edilmez. Uygulamayı kaldırmak veya cihaz verilerini temizlemek, buluta aktarılmamış ilerlemeyi kaybettirebilir."
+          ]
+        },
+        {
+          "title": "3. Hesap ve oyun verileri",
+          "bullets": [
+            "Google veya Apple ile girişte sağlayıcının paylaştığı kullanıcı kimliği, ad, e-posta ya da Apple'ın gizli e-posta adresi ve varsa profil resmi adresi gibi profil bilgileri Firebase Authentication tarafından işlenebilir. IQUM sağlayıcı parolanı almaz.",
+            "Hesabına bağlanmayı seçtiğinde level, can durumu, kişisel rekorlar, oyun sonuçları, aktarım kimlikleri ve kullanım koşulları kabul sürümü/tarihi saklanır.",
+            "Düellolarda oyuncu kimlikleri ve görünen adlar, oda/eşleşme bilgisi, seçilen kartlar/cevaplar, maç skorları, sonuçlar, bağlantı ve sunucu zamanları işlenir.",
+            "Rakibin görünen adını, maçın kendisine açık durumunu ve skorunu görebilir. E-posta adresin ve hesabının özel kayıtları rakibe gösterilmez."
+          ]
+        },
+        {
+          "title": "4. Teknik güvenlik verileri",
+          "paragraphs": [
+            "Firebase App Check, Android'de Play Integrity ve iOS'ta App Attest üzerinden uygulama/cihaz doğrulama bilgilerini işleyebilir. Servis sağlayıcıları güvenlik ve hizmet sunumu için IP adresi, uygulama/sürüm ve cihaz bilgileri, doğrulama tokenları ile teknik istek/hata günlüklerini işleyebilir. Bunlar reklam profili oluşturmak amacıyla kullanılmaz.",
+            "Bu sürümde reklam, uygulama içi satın alma ve çapraz uygulama reklam takibi bulunmaz. Firebase Analytics ve Crashlytics mobil paketleri bu sürümün uygulama bağımlılıkları arasında değildir. Firebase'in hizmet sunumu ve güvenlik işlemleri bunlardan ayrı olabilir."
+          ]
+        },
+        {
+          "title": "5. İşleme amaçları ve dayanaklar",
+          "paragraphs": [
+            "Veriler oyunları çalıştırmak, seçtiğin ilerlemeyi hesaba taşımak, düelloları yönetmek, sonuçları tek seferlik kaydetmek, güvenliği sağlamak, hataları incelemek ve taleplerini yanıtlamak için kullanılır. İşleme, hizmetin sunulması/sözleşmenin yürütülmesi, uygulanabilir yasal yükümlülükler ve haklarına ölçüsüz müdahale etmeyen güvenlik menfaatleriyle sınırlıdır. Ayrı rıza gerektiren yeni bir kullanım olursa ayrıca açıklanır ve gerekli rıza alınır.",
+            "İsteğe bağlı hesap açmayı reddedersen tek oyunculu misafir oyunlarını kullanabilirsin. Hesap verilerini sağlamazsan bulut kaydı ve düello özellikleri kullanılamaz."
+          ]
+        },
+        {
+          "title": "6. Alıcılar ve yurt dışı işleme",
+          "paragraphs": [
+            "Google/Firebase; kimlik doğrulama, veritabanı, sunucu fonksiyonları, görev kuyruğu ve uygulama doğrulaması için hizmet sağlayıcı olarak kullanılır. Google ve Apple kendi giriş/doğrulama hizmetlerini kendi politikalarına göre yürütür. Destek talebi gönderirsen e-posta hizmeti sağlayıcıları da iletini işler. Kişisel verilerin satılması veya reklam amacıyla paylaşılması bu sürümün işleyişi değildir.",
+            "Oyun veritabanı ve oyun sunucu işlemleri Avrupa bölgesinde yapılandırılmıştır. Bu, tüm kimlik, doğrulama, destek veya teknik verilerin yalnızca bu bölgede işlendiği anlamına gelmez. Sağlayıcıların küresel altyapıları nedeniyle ülken dışında veri işlenebilir. Aktarımın hukuki dayanakları ve uygulanabilir güvenceleri hakkında {{supportEmail}} adresinden bilgi isteyebilirsin. Yasal zorunluluk halinde yetkili makamlara gerekli ölçüde veri sağlanabilir."
+          ]
+        },
+        {
+          "title": "7. Saklama ve silme",
+          "paragraphs": [
+            "Hesap ilerlemesi, rekorlar, kabul kayıtları ve hesaba bağlı oyun kayıtları hesabın kullanıldığı sürece ya da silme talebine kadar tutulur. Yerel misafir verileri cihazında temizleyene veya uygulamayı kaldırana kadar kalabilir. 9 Kasım 2026 tarihli yapılandırmada uygulama/sunucu işletim günlükleri Cloud Logging _Default alanında 30 gün, sağlayıcının zorunlu yönetim/denetim günlükleri _Required alanında 400 gün tutulur. Firebase Authentication, kendi güvenlik amacıyla kaydettiği IP adreslerini birkaç hafta saklayabilir. Bu süreler oyun profilinin aktif kalma süresinden ayrıdır.",
+            "Hesabımı sil akışı, kimliğin yeniden doğrulandıktan sonra sunucuda silmeyi başlatır. Profil, alt kayıtlar ve kimlik doğrulama hesabı silinir; rakibin kayıtlarında adın/kimliğin bağlantısı kaldırılır. Aktif maçtan ayrılma sonucunda rakibin hak edilmiş puanı kalabilir. Silme işlemine ait az miktarda teknik kayıt, eski oturumların veriyi yeniden oluşturmasını engellemek ve sonucu bildirmek için tutulur; işlem tamamlandıktan sonra yaklaşık 24 saatlik temizlik hedefiyle kaldırılır. Teknik arıza halinde işlem yeniden denenir.",
+            "Günlüklerde veya yasal olarak saklanması gereken kayıtlarda kalan bilgiler normal saklama/erişim sınırlamalarına tabidir; anlık ve bütün sistemlerden fiziksel silme garantisi verilmez. Böyle bir saklama varsa gerekçesi ve süresi talebine verilen yanıtta açıklanır.",
+            "Bu tarihte Firestore için planlı yedek ve isteğe bağlı geçmişe dönük kurtarma (PITR) etkin değildir. Sağlayıcının hizmet içi çoğaltma ve silme süreçleri ayrıca uygulanır. Destek yazışmaları, talep kapandıktan sonra 90 gün içinde temizlenir; yasal olarak tutulması zorunlu bir kayıt varsa gerekçe ve uygulanabilir süre ayrıca açıklanır. Saklama ayarları değişirse bu metin güncellenir."
+          ]
+        },
+        {
+          "title": "8. Hakların ve seçeneklerin",
+          "paragraphs": [
+            "Uygulanabilir hukuk kapsamında verilerine erişme, bilgi alma, düzeltme, silme, işlemeye itiraz etme, işlemeyi kısıtlama ve uygun olduğunda taşınabilirlik veya rızanı geri çekme taleplerini {{supportEmail}} adresine iletebilirsin. Kimliğini güvenli biçimde doğrulamak için gerekli en az bilgi istenebilir; sağlayıcı parolan veya tek kullanımlık giriş kodun istenmez. Uygulanabildiği ölçüde KVKK/GDPR kapsamındaki hakların ve yetkili veri koruma kurumuna başvuru hakkın saklıdır.",
+            "Uygulamadan Hesap → Hesabımı sil yolunu kullanabilir veya uygulamayı kurmadan {{deletionUrl}} adresinden talep gönderebilirsin. Hesaptan çıkış yapmak, uygulamayı kaldırmak veya Apple/Google bağlantısını kesmek tek başına IQUM bulut hesabını silmez."
+          ]
+        },
+        {
+          "title": "9. Çocuklar ve değişiklikler",
+          "paragraphs": [
+            "Bu sürümün hedef kitlesi: {{targetAudience}}. Hesap kullanımı, bulunduğun yerde geçerli yaş ve yasal temsilci izinlerine tabidir. Reşit değilsen gerektiğinde velin/yasal temsilcinle birlikte hareket et. Bir çocuğa ilişkin uygunsuz veri işlendiğini düşünüyorsan destek adresine bildir.",
+            "Veri kullanımında önemli bir değişiklik olursa güncel metin uygulamada sunulur; gerekli olduğunda ayrıca bildirim ve onay istenir. Bu sürümde bulunmayan reklam veya analiz özellikleri eklenmeden önce bu politika ve mağaza beyanları güncellenir."
+          ]
+        }
+      ],
+      "links": [
+        {
+          "label": "Firebase gizlilik ve güvenlik",
+          "url": "https://firebase.google.com/support/privacy"
+        },
+        {
+          "label": "Google Gizlilik Politikası",
+          "url": "https://policies.google.com/privacy"
+        },
+        {
+          "label": "Apple Gizlilik Politikası",
+          "url": "https://www.apple.com/legal/privacy/"
+        }
+      ]
+    },
+    {
+      "id": "terms",
+      "slug": "kullanim-kosullari",
+      "title": "Kullanım Koşulları",
+      "intro": "IQUM'u kullanırken geçerli oyun, hesap ve hizmet koşullarıdır. Hesapla devam etmeden önce bu metni inceleyebilirsin.",
+      "sections": [
+        {
+          "title": "1. Hizmet ve işletmeci",
+          "paragraphs": [
+            "IQUM; Sıra Hafızası, Kart Eşleştirme ve Hafıza Yolu oyunlarını sunar. İşletmeci: {{legalName}}. İletişim: {{supportEmail}}. Son güncelleme: 9 Kasım 2026.",
+            "IQUM eğlence amaçlıdır. Tıbbi tanı, tedavi, bilimsel zekâ ölçümü veya garanti edilmiş bilişsel gelişim sunmaz. Oyun puanı bir IQ sonucu değildir."
+          ]
+        },
+        {
+          "title": "2. Misafir ve hesap kullanımı",
+          "paragraphs": [
+            "Tek oyunculu oyunları hesap açmadan kullanabilirsin. Düello ve bulut kaydı için desteklenen Google/Apple hesabıyla giriş gerekir. Giriş sağlayıcısının ve bulunduğun yerdeki yaş/temsilci kurallarının koşullarını karşılamalısın.",
+            "Hesap güvenliği ve cihaz erişimini korumak senden beklenir. Başkasının hesabını kullanma. Kimlik bilgilerini paylaşma. Misafir ilerlemesi bu cihazla sınırlıdır; kaldırma/cihaz değişiminden önce hesabına aktarmadığın veriler kaybolabilir."
+          ]
+        },
+        {
+          "title": "3. Oyun kuralları ve puan",
+          "bullets": [
+            "Kart eşleştirme düellosu 16 kart/8 çiftlik ortak tahtada sırayla oynanır. İki seçim için toplam 15 saniye verilir; ilk kart süreyi yenilemez. Çift +1 maç puanı ve devam hakkı verir; hata/süre aşımında puan düşmeden sıra değişir. 4–4 beraberliktir.",
+            "Sıra Hafızası üç turdur. Toplam doğru sayısı; eşitlikte toplam cevaplama süresi sonucu belirler. Her ikisi eşitse beraberliktir.",
+            "Düello galibiyeti +100, beraberlik +50, mağlubiyet 0 hesap puanı verir. Maç skoru ile hesap puanı farklıdır. Puanlar nakit, bahis veya ödül hakkı değildir; devredilemez.",
+            "Hafıza Yolu 30 leveldir. Yanlış adım bir kalp götürür ve leveli yeniden ezberlemeye döndürür. Başlangıç/üst sınır dört kalptir; eksik kalpler 30 dakikada bir yenilenir. İlk sürümde reklamla can kazanma yoktur.",
+            "Maçtan ayrılmak veya 15 saniyelik yeniden bağlanma süresinde dönmemek hükmen kayba yol açabilir. İki tarafın da bağlantısı kaybolursa maç iptal edilip puan verilmez."
+          ]
+        },
+        {
+          "title": "4. Adil kullanım",
+          "paragraphs": [
+            "Bot, otomatik cevap, değiştirilmiş istemci, sahte istek, anlaşmalı puan kasma veya başkasının verisine erişme girişimi yasaktır. Sunucu sıra, süre, kimlik ve skorları doğrular. Güvenlik kontrolleri tüm hile türlerinin önleneceği garantisi değildir.",
+            "Hizmeti bozacak yoğun trafik, güvenlik aşma ve hukuka aykırı kullanım halinde gerekli, ölçülü erişim sınırlamaları uygulanabilir. Hatalı işlem veya puan itirazını destek adresine iletebilirsin."
+          ]
+        },
+        {
+          "title": "5. Erişim, güncellemeler ve haklar",
+          "paragraphs": [
+            "İnternet, cihaz ve sağlayıcı hizmetleri çevrimiçi deneyimi etkileyebilir. Bakım, hata giderme ve güvenlik güncellemeleri yapılabilir; desteklenen güncel sürüm gerekebilir. Kesintisiz erişim veya her cihazda belirli performans garanti edilmez.",
+            "Oyun yazılımı, marka ve özgün çizimler hak sahiplerine aittir; üçüncü taraf açık kaynak ve font lisansları saklıdır. Sana kişisel oyun kullanımı için sınırlı kullanım hakkı verilir. Zorunlu tüketici haklarını kaldıran bir yorum yapılamaz."
+          ]
+        },
+        {
+          "title": "6. Gizlilik, silme ve sorumluluk",
+          "paragraphs": [
+            "Veri işlemleri Gizlilik Politikası'nda açıklanır; koşulları kabul etmek, ayrıca rıza gerektiren veri işlemlerine toplu rıza anlamına gelmez. Hesabını uygulamadan silebilir veya {{deletionUrl}} üzerinden talep edebilirsin. Silme geri alınamayabilir; puanlar ve bulut ilerlemesi kaldırılır.",
+            "Uygulanabilir hukukun izin verdiği ölçüde hizmetin niteliği ve makul teknik sınırlar geçerlidir. Kasıt, ağır kusur veya zorunlu tüketici/veri koruma hakları bu metinle bertaraf edilmez. Şikâyetler için önce {{supportEmail}} adresinden iletişim kurabilirsin; yasal başvuru hakların korunur."
+          ]
+        },
+        {
+          "title": "7. Koşul değişiklikleri",
+          "paragraphs": [
+            "Önemli değişikliklerde güncel sürüm ve yürürlük bilgisi uygulamada gösterilir; gerekli olduğunda yeniden kabul istenir. Bu ilk sürümde reklam ve uygulama içi satın alma yoktur; eklenirse ilgili koşullar ayrıca sunulur."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deletion",
+      "slug": "hesap-silme",
+      "title": "Hesap ve Veri Silme",
+      "intro": "IQUM hesabını ve bağlı verilerini silmek için uygulamayı kullanabilir veya uygulamayı tekrar kurmadan e-posta talebi oluşturabilirsin.",
+      "sections": [
+        {
+          "title": "Uygulamadan silme",
+          "paragraphs": [
+            "Hesap → Hesabımı sil yolunu aç, sonuçları incele ve onayla. Güvenlik için aynı Google/Apple hesabıyla kimliğini yeniden doğrula. İstek kabul edilince bu cihazdaki ilgili hesap kayıtları temizlenir ve oturum kapanır. İşlem durumunu uygulamadaki silme durumundan takip edebilirsin."
+          ]
+        },
+        {
+          "title": "Neler silinir?",
+          "bullets": [
+            "Firebase kimlik doğrulama hesabın, bulut profilin, ilerlemen, rekorların, puanların, oyun ve kabul/aktarım kayıtların.",
+            "Düellolardaki adın ve kimliğinle bağlantı; gizli kart/hamle kayıtları ve ilgili oda bilgileri. Rakibin kendi sonucu/puanı kişisel kimliğinle ilişkilendirilmeden kalabilir.",
+            "Bu cihazda silinen hesaba ve ona aktarılmış misafir alanlarına ait yerel kayıtlar. Başka cihazlarda önceden indirilmiş yerel kopyalar o cihazlardan da temizlenmelidir; hesap oturumu ve sunucu erişimi sona erer."
+          ]
+        },
+        {
+          "title": "Süre ve istisnalar",
+          "paragraphs": [
+            "Doğrulanmış uygulama talebi sunucuda otomatik işleme alınır; çoğu işlem kısa sürede tamamlanır. Bağlantı veya servis sorunu olursa yeniden denenir. Uygulama tamamlanmış durumunu gösterene kadar işlem başlatılmış sayılır. İşlem uzun sürerse destekten durum isteyebilirsin.",
+            "Güvenli tekrar engelleme/durum bildirme için sınırlı işlem kaydı, tamamlandıktan sonra yaklaşık 24 saatlik temizlik hedefiyle tutulur. Teknik günlükler ve zorunlu yasal saklama Gizlilik Politikası'ndaki sınırlamalara tabidir. Hesabı dondurmak, çıkış yapmak veya uygulamayı kaldırmak hesap silme yerine geçmez."
+          ]
+        },
+        {
+          "title": "Uygulamayı kurmadan talep",
+          "paragraphs": [
+            "{{supportEmail}} adresine 'IQUM hesap silme talebi' konusuyla yaz. Giriş yaptığın e-posta adresini veya Apple gizli e-posta adresini ve talebini belirt. Doğru hesabın silinmesini sağlamak için en az gerekli kimlik doğrulaması yapılır; parola veya tek kullanımlık giriş kodunu paylaşma.",
+            "E-posta talepleri alındığında işlemin kapsamı ve makul tamamlanma süresi bildirilir; tamamlandığında teyit gönderilir. Bu sayfadaki form e-posta uygulamanı açar; iletiyi sen göndermeden talep iletilmiş olmaz."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "guide",
+      "slug": "oyun-bilgileri",
+      "title": "Oyun ve Hesap Bilgileri",
+      "intro": "IQUM'da ilerleme, düello ve kayıtların nasıl çalıştığını öğren.",
+      "sections": [
+        {
+          "title": "Üç oyun",
+          "paragraphs": [
+            "Sıra Hafızası'nda önce hayvanların yerini/sırasını ezberle, sonra görsel panelden sıradaki hayvanı seç. Yanlış cevap o turdaki denemeni bitirir. Kart Eşleştirme'de aynı hayvan çiftlerini bul. Hafıza Yolu'nda gösterilen güvenli karoları ezberleyip sıraları atlamadan ilerle."
+          ]
+        },
+        {
+          "title": "Kalpler ve çevrimdışı kayıt",
+          "paragraphs": [
+            "Hafıza Yolu'nda dört kalbin vardır. Yanlış adım bir kalp tüketir; doğru adım ve level bitirmek tüketmez. Eksik kalpler 30 dakikada bir yenilenir, yeni hata mevcut sayacı sıfırlamaz. Sıfır kalpte diğer antrenmanları oynayabilirsin.",
+            "Misafir kayıtları bu cihazda tutulur. Uygulamayı kaldırmadan veya cihaz değiştirmeden önce ilerlemeni hesabına bağlamak isteyebilirsin. İnternet olmadığında bulut eşitleme bekler; bağlantı geldiğinde tekrar denenebilir."
+          ]
+        },
+        {
+          "title": "Düello",
+          "paragraphs": [
+            "Google/Apple hesabıyla rastgele rakip ara veya altı karakterli oda kodunu karşı tarafa paylaş. İki oyuncu hazır olduğunda maç başlar. Kart eşleştirmede ortak tahtayı ve bütün açılan kartları görürsünüz; sıra sana geldiğinde iki kartı toplam 15 saniyede seçmelisin. Çift bulursan devam edersin, bulamazsan sıra geçer. Yanlış seçim puan düşürmez.",
+            "Bağlantın koparsa yeniden bağlanmak için 15 saniyen vardır; dönmezsen hükmen kaybedebilirsin. Hesap puanı galibiyette 100, beraberlikte 50, mağlubiyette 0 artar. Tek oyunculu oyunlar düello puanı üretmez."
+          ]
+        },
+        {
+          "title": "Bilmen gerekenler",
+          "paragraphs": [
+            "IQUM bir eğlence oyunudur; tıbbi hizmet veya IQ testi değildir. Oyun seslerini ve titreşimi Hesap bölümünden kapatabilirsin. Cihazının hareketi azaltma tercihi desteklenir. İlk sürümde reklam, satın alma, sohbet ve genel sıralama bulunmaz."
+          ]
+        }
+      ]
+    }
+  ]
+}

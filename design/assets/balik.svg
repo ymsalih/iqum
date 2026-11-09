@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Balık"><g stroke="#342F2C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M37 64 12 39c-7 13-7 37 0 50Z" fill="#DC793E"/>
+    <path d="M49 40c7-14 19-18 32-14L75 47m-20 39 17 17 12-19" fill="#EAA74C"/>
+    <path d="M30 65c15-31 66-36 88 0-20 35-70 31-88 0Z" fill="#F4B44F"/>
+    <path d="M39 66c7 15 26 23 43 18-17-2-31-11-36-22Z" fill="#E58D3E" stroke="none"/>
+    <path d="M78 48q-12 17 0 34" fill="none" stroke="#B56536"/>
+    <path d="m58 60 13 7-13 9Z" fill="#E88C40" stroke="#B56536"/>
+    <circle cx="96" cy="58" r="9" fill="#FFFCF3" stroke="none"/>
+    <circle cx="98" cy="58" r="4.5" fill="#342F2C" stroke="none"/><circle cx="99" cy="56.8" r="1.25" fill="#FFFCF3" stroke="none"/>
+    <path d="m111 71 6-3M14 51l13 13-13 13" fill="none" stroke="#B56536" stroke-width="2"/>
+  </g></svg>

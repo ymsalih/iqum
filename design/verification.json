@@ -1,0 +1,63 @@
+{
+  "kind": "design-prototype",
+  "checks": [
+    {
+      "name": "Nine screens render without broken images or horizontal overflow",
+      "status": "passed"
+    },
+    {
+      "name": "Level road ascends from below and opens at the current unlocked stop",
+      "status": "passed"
+    },
+    {
+      "name": "A pair scores once, stays visible and retains the turn",
+      "status": "passed"
+    },
+    {
+      "name": "Mismatch closes both cards, switches player and deducts no points",
+      "status": "passed"
+    },
+    {
+      "name": "The first card does not reset the 15-second deadline; timeout closes it",
+      "status": "passed"
+    },
+    {
+      "name": "All eight pairs end the duel with the correct reward",
+      "status": "passed"
+    },
+    {
+      "name": "Draw and loss sample states use consistent scores and rewards",
+      "status": "passed"
+    },
+    {
+      "name": "Sequence preview hides and a wrong answer ends the current round",
+      "status": "passed"
+    },
+    {
+      "name": "Wrong path step consumes one heart and restarts the same level",
+      "status": "passed"
+    },
+    {
+      "name": "Zero hearts block play and a heart refills after 30 minutes",
+      "status": "passed"
+    },
+    {
+      "name": "Android offers only Google; iOS additionally offers Apple",
+      "status": "passed"
+    },
+    {
+      "name": "Room code validation and guest login route are explicit demo flows",
+      "status": "passed"
+    },
+    {
+      "name": "Disconnected and expired room states render as blocking sheets",
+      "status": "passed"
+    },
+    {
+      "name": "Reduced motion removes card transitions",
+      "status": "passed"
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

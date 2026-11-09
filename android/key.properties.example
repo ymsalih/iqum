@@ -1,0 +1,6 @@
+# Kopyayı android/key.properties olarak sakla. Parolaları ve anahtarı sürüm kontrolüne ekleme.
+# storeFile android/ klasörüne göre veya mutlak bir yol olabilir.
+storeFile=../private/iqum-upload.jks
+storePassword=
+keyAlias=iqum-upload
+keyPassword=

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Tavşan"><g stroke="#342F2C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="41" cy="35" rx="11" ry="28" transform="rotate(-13 41 35)" fill="#DFE2DD"/>
+    <ellipse cx="71" cy="32" rx="10" ry="27" transform="rotate(7 71 32)" fill="#DFE2DD"/>
+    <path d="m40 16 5 35m28-35-3 33" fill="none" stroke="#DEA1A0" stroke-width="7"/>
+    <circle cx="102" cy="91" r="12" fill="#FFFCF3"/>
+    <ellipse cx="69" cy="86" rx="30" ry="27" fill="#CCD2CD"/>
+    <ellipse cx="57" cy="66" rx="32" ry="28" fill="#E7E9E0"/>
+    <ellipse cx="56" cy="79" rx="18" ry="11" fill="#FFFCF3" stroke="none"/>
+    <circle cx="43" cy="63" r="4" fill="#342F2C" stroke="none"/><circle cx="44" cy="61.8" r="1.25" fill="#FFFCF3" stroke="none"/><circle cx="68" cy="63" r="4" fill="#342F2C" stroke="none"/><circle cx="69" cy="61.8" r="1.25" fill="#FFFCF3" stroke="none"/>
+    <path d="m51 74 10 0-5 5Z" fill="#D08889" stroke-width="1.8"/>
+    <path d="M56 80v5m-7-1q7 6 14 0" fill="none" stroke-width="1.8"/>
+    <ellipse cx="42" cy="110" rx="17" ry="6" fill="#E7E9E0"/>
+    <ellipse cx="81" cy="110" rx="19" ry="6" fill="#E7E9E0"/>
+  </g></svg>

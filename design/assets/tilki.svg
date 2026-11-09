@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Tilki"><g stroke="#342F2C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M66 100C35 116 10 95 15 59c10 14 29 14 30 31l21-6Z" fill="#D66D36"/>
+    <path d="M15 59c1 17 6 28 16 33l8-11C29 73 22 72 15 59Z" fill="#FFF0D3"/>
+    <path d="M53 75c-8 17-9 29-4 40h40c7-17 5-32-3-43Z" fill="#DA783C"/>
+    <path d="m51 103-1 12h13l3-13m12 0 1 13h12l-1-13" fill="#6D4936"/>
+    <path d="m39 49-2-34 25 18c5-1 10-1 16 0l24-19-2 35c10 16 4 26-30 43-32-17-42-28-31-43Z" fill="#E98C42"/>
+    <path d="m45 29 1 19 12-11m35-8-1 19-12-11" fill="#694A3E" stroke="none"/>
+    <path d="M39 55c3 17 15 26 31 36 16-10 27-19 30-36L80 65 70 79 59 65Z" fill="#FFF0D3" stroke="none"/>
+    <circle cx="54" cy="54" r="3.7" fill="#342F2C" stroke="none"/><circle cx="55" cy="52.8" r="1.25" fill="#FFFCF3" stroke="none"/><circle cx="85" cy="54" r="3.7" fill="#342F2C" stroke="none"/><circle cx="86" cy="52.8" r="1.25" fill="#FFFCF3" stroke="none"/>
+    <path d="m63 76 14 0-7 8Z" fill="#342F2C" stroke-width="1.5"/>
+  </g></svg>

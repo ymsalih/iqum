@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Baykuş"><g stroke="#342F2C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m44 107-4 9m17-8 1 9m16-9-1 9m15-10 4 9" fill="none" stroke="#A46E35" stroke-width="3.5"/>
+    <path d="m29 45-2-28 26 13h23l26-13-2 28c19 30 5 66-35 67-40-1-54-34-36-67Z" fill="#936843"/>
+    <path d="M32 66c-5 22 4 34 17 40L46 70m50-4c5 22-4 34-17 40l3-36" fill="#6E503B"/>
+    <path d="M40 76c3 20 10 29 25 29 16 0 23-10 26-29Z" fill="#D6AE76" stroke="none"/>
+    <ellipse cx="46" cy="55" rx="22" ry="25" fill="#F3E2BA"/>
+    <ellipse cx="84" cy="55" rx="22" ry="25" fill="#F3E2BA"/>
+    <circle cx="47" cy="55" r="11" fill="#DCA94B" stroke="none"/><circle cx="83" cy="55" r="11" fill="#DCA94B" stroke="none"/>
+    <circle cx="47" cy="55" r="7" fill="#342F2C" stroke="none"/><circle cx="48" cy="53.8" r="1.25" fill="#FFFCF3" stroke="none"/><circle cx="83" cy="55" r="7" fill="#342F2C" stroke="none"/><circle cx="84" cy="53.8" r="1.25" fill="#FFFCF3" stroke="none"/>
+    <path d="m58 72 14 0-7 12Z" fill="#D89838" stroke-width="2"/>
+    <path d="m51 91 5 5 5-5m8 0 5 5 5-5" fill="none" stroke="#9D784B" stroke-width="2"/>
+  </g></svg>
