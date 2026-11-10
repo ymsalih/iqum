@@ -379,12 +379,15 @@ class _MemoryTileState extends State<MemoryTile> with TickerProviderStateMixin {
   /// the reaction reads as a separate beat without any extra timer.
   double _fxDelay = 0;
 
+  /// The verdict (colour, badge, celebration, pop or shake) waits one full
+  /// flip, even on the card that was already open: its partner is still
+  /// turning, and showing the result early would give the pair away.
+  bool get _verdict => _fxDelay == 0 || _fx.value >= _fxDelay;
+
   void _play(_Fx effect) {
     if (_reduced) return;
     _effect = effect;
-    final wait = _flip.isAnimating || _flip.value < 1
-        ? MotionTokens.flip.inMilliseconds * (1 - _flip.value)
-        : 0.0;
+    final wait = MotionTokens.flip.inMilliseconds.toDouble();
     final total = wait + MotionTokens.settle.inMilliseconds;
     _fxDelay = wait / total;
     _fx.duration = Duration(milliseconds: total.round());
@@ -417,17 +420,18 @@ class _MemoryTileState extends State<MemoryTile> with TickerProviderStateMixin {
   }
 
   Widget _face(bool front) {
-    final w = widget;
+    final w = widget, verdict = _verdict;
+    final wrong = w.wrong && verdict, matched = w.matched && verdict;
     final Color face, lip, edge;
     if (!front) {
       face = AppColors.petrol;
       lip = AppColors.dark;
       edge = w.highlight ? AppColors.gold : AppColors.dark;
-    } else if (w.wrong) {
+    } else if (wrong) {
       face = const Color(0xFFFFEDE8);
       lip = AppColors.redDeep;
       edge = AppColors.red;
-    } else if (w.matched) {
+    } else if (matched) {
       face = const Color(0xFFE5F6EB);
       lip = AppColors.sageDeep;
       edge = AppColors.sageDeep;
@@ -453,7 +457,7 @@ class _MemoryTileState extends State<MemoryTile> with TickerProviderStateMixin {
             Positioned.fill(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(5, 7, 5, 5),
-                child: AnimalArt(w.animal!, celebrate: _celebrate),
+                child: AnimalArt(w.animal!, celebrate: _celebrate && verdict),
               ),
             ),
           if (w.number != null)
@@ -466,7 +470,7 @@ class _MemoryTileState extends State<MemoryTile> with TickerProviderStateMixin {
                 ink: front ? AppColors.paper : AppColors.text,
               ),
             ),
-          if (front && w.matched)
+          if (front && matched)
             const Positioned(
               right: 4,
               top: 4,
@@ -476,7 +480,7 @@ class _MemoryTileState extends State<MemoryTile> with TickerProviderStateMixin {
                 color: AppColors.sageDeep,
               ),
             ),
-          if (front && w.wrong)
+          if (front && wrong)
             const Positioned(
               right: 4,
               top: 4,

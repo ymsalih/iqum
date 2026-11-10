@@ -349,6 +349,12 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
   Map<String, dynamic>? match;
   StreamSubscription<Map<String, dynamic>>? subscription;
   Timer? pulse;
+
+  /// When the second card of a pair has finished turning: until then the
+  /// pair's result (sound, note, score) stays hidden. Display only.
+  int _judgeAt = 0;
+  Timer? _judge;
+  bool get _judged => now >= _judgeAt;
   bool sending = false,
       finished = false,
       inFlight = false,
@@ -385,8 +391,15 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
     }
     if (previous != null &&
         previous['revision'] != data['revision'] &&
-        data['lastEvent'] == 'matched') {
-      unawaited(app.feedback('success'));
+        (data['lastEvent'] == 'matched' || data['lastEvent'] == 'mismatch')) {
+      final found = data['lastEvent'] == 'matched';
+      _judgeAt = now + MotionTokens.flip.inMilliseconds;
+      _judge?.cancel();
+      _judge = Timer(MotionTokens.flip, () {
+        if (!mounted) return;
+        setState(() {});
+        if (found) unawaited(app.feedback('success'));
+      });
     }
     if (data['status'] == 'finished' && !finished) {
       finished = true;
@@ -546,6 +559,7 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
     WidgetsBinding.instance.removeObserver(this);
     unawaited(subscription?.cancel());
     pulse?.cancel();
+    _judge?.cancel();
     super.dispose();
   }
 
@@ -803,7 +817,12 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
   Widget _scores(Map<String, dynamic> m) {
     final players = (m['players'] as List).cast<Map>(),
         scores = (m['scores'] as List).map((s) => intValue(s)).toList(),
-        turnIsMine = m['turn'] == me,
+            // A found pair scores only once its second card has turned over.
+            hidden =
+            m['phase'] == 'feedback' && m['lastEvent'] == 'matched' && !_judged;
+    int shown(int player) =>
+        scores[player] - (hidden && m['turn'] == player ? 1 : 0);
+    final turnIsMine = m['turn'] == me,
         sequential = m['gameType'] == 'matching';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -833,7 +852,7 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ScoreNumber(
-                    scores[me < 0 ? 0 : me],
+                    shown(me < 0 ? 0 : me),
                     style: AppColors.display(
                       30,
                     ).copyWith(color: AppColors.paper),
@@ -845,7 +864,7 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
                     ).copyWith(color: AppColors.goldLight),
                   ),
                   ScoreNumber(
-                    scores[me < 0 ? 1 : 1 - me],
+                    shown(me < 0 ? 1 : 1 - me),
                     style: AppColors.display(
                       30,
                     ).copyWith(color: AppColors.paper),
@@ -885,6 +904,7 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
         matched = (m['matched'] as List? ?? []).map((e) => intValue(e)).toSet(),
         mine = m['turn'] == me,
         feedback = m['phase'] == 'feedback',
+        judged = !feedback || _judged,
         mismatch = feedback && m['lastEvent'] == 'mismatch';
     return (
       fit: GameLayout.grid(columns: 4, rows: 4, tileAspect: .8),
@@ -941,7 +961,9 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
       ),
       footer: [
         GameNote(
-          feedback
+          feedback && !judged
+              ? 'İkinci kart açılıyor…'
+              : feedback
               ? (m['lastEvent'] == 'matched'
                     ? 'Eşleşme +1 puan. Sıra aynı oyuncuda.'
                     : 'Eşleşmedi. Puan eksilmez; sıra değişir.')
@@ -953,7 +975,9 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
           child: StatPill(
             label: 'BULUNAN ÇİFT',
             icon: Icons.style_rounded,
-            value: Text('${matched.length ~/ 2}/8'),
+            value: Text(
+              '${matched.length ~/ 2 - (judged || m['lastEvent'] != 'matched' ? 0 : 1)}/8',
+            ),
           ),
         ),
       ],

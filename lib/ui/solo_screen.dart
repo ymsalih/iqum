@@ -35,6 +35,11 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
   Timer? _timer;
   bool _loaded = false, _done = false, _paused = false, _disposed = false;
   bool _failing = false;
+
+  /// When the second card of a pair has finished turning. Until then the
+  /// pair's result (sound, note, counter) stays hidden.
+  int _judgeAt = 0;
+  Timer? _judge;
   late String _scope;
   Map<String, dynamic>? _pausedSnapshot;
   Future<void> _writes = Future.value();
@@ -205,7 +210,8 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     if (_failing) return;
     _failing = true;
     _timer?.cancel();
-    unawaited(app.feedback('error'));
+    // Matching already sounded the miss when the last pair was judged.
+    if (widget.kind != GameKind.matching) unawaited(app.feedback('error'));
     try {
       await _writes;
       await app.spendHeart(
@@ -416,6 +422,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _judge?.cancel();
     if (_loaded && !_done) {
       matching?.pause(now);
       sequence?.pause(now);
@@ -500,7 +507,11 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
 
   _Screen _matching(PlayerProgress progress) {
     final g = matching!, spec = g.spec;
+    final judged = g.phase != GamePhase.feedback || app.now >= _judgeAt;
     final wrongPair = g.phase == GamePhase.feedback && !g.lastMatched;
+    final pairs =
+        g.matched.length ~/ 2 -
+        (!judged && g.phase == GamePhase.feedback && g.lastMatched ? 1 : 0);
     final low = g.movesLeft <= math.max(2, spec.pairs ~/ 2);
     final canPlay =
         g.phase == GamePhase.playing && (_hearts > 0 || _inProgress);
@@ -518,10 +529,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
             StatPill(
               label: 'ÇİFT',
               icon: Icons.style_rounded,
-              value: ScoreNumber(
-                g.matched.length ~/ 2,
-                suffix: '/${spec.pairs}',
-              ),
+              value: ScoreNumber(pairs, suffix: '/${spec.pairs}'),
             ),
             StatPill(
               label: 'HAMLE',
@@ -562,13 +570,18 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
                 ? () {
                     if (g.select(i, now)) {
                       setState(() {});
-                      unawaited(
-                        app.feedback(
-                          g.opened.length == 2
-                              ? (g.lastMatched ? 'success' : 'error')
-                              : 'flip',
-                        ),
-                      );
+                      unawaited(app.feedback('flip'));
+                      if (g.opened.length == 2) {
+                        _judgeAt = now + MotionTokens.flip.inMilliseconds;
+                        _judge?.cancel();
+                        _judge = Timer(MotionTokens.flip, () {
+                          if (!mounted) return;
+                          setState(() {});
+                          unawaited(
+                            app.feedback(g.lastMatched ? 'success' : 'error'),
+                          );
+                        });
+                      }
                       _runTimer();
                       unawaited(_save());
                     }
@@ -581,7 +594,9 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
           ? _failedFooter('Hamlelerin bitti.')
           : [
               GameNote(
-                g.phase == GamePhase.feedback
+                g.phase == GamePhase.feedback && !judged
+                    ? 'İkinci kart açılıyor…'
+                    : g.phase == GamePhase.feedback
                     ? (g.lastMatched
                           ? 'Bir çift daha hatırladın.'
                           : 'Bu ikisi farklı. Yerlerini aklında tut.')
@@ -591,7 +606,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
                     : low
                     ? 'Son ${g.movesLeft} hamle. Dikkatli seç.'
                     : 'Bir kart aç. Eşi aklında mı?',
-                error: wrongPair,
+                error: wrongPair && judged,
               ),
               if (_hearts == 0 && !_inProgress)
                 IqumButton(
