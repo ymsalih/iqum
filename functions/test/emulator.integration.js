@@ -132,9 +132,9 @@ test('expired presence cannot be renewed to undo a forfeit',{timeout:60000},asyn
 test('legal consent uses a version and a server timestamp without damaging progress',async()=>{
   const a=await account('Legal');const before=Date.now();
   await assert.rejects(()=>call(a,'acceptLegalTerms',{version:'old'}));
-  await call(a,'acceptLegalTerms',{version:'2026-11-09',acceptedAt:0});
+  await call(a,'acceptLegalTerms',{version:'2026-11-10',acceptedAt:0});
   const {profile}=await call(a,'getProfile');
-  assert.equal(profile.legal.termsVersion,'2026-11-09');assert.ok(profile.legal.acceptedAt>=before);
+  assert.equal(profile.legal.termsVersion,'2026-11-10');assert.ok(profile.legal.acceptedAt>=before);
   assert.equal(profile.points,0);assert.equal(profile.life.count,4);
 });
 
@@ -150,7 +150,7 @@ test('account deletion removes Auth, private trees and room secrets; old tokens 
     await assert.rejects(()=>call(a,'getProfile'));
     await assert.rejects(()=>call(a,'createRoom',{gameType:'matching'}));
     await assert.rejects(()=>call(a,'importProgress',{importId:randomUUID(),progress:{},records:[]}));
-    await assert.rejects(()=>call(a,'acceptLegalTerms',{version:'2026-11-09'}));
+    await assert.rejects(()=>call(a,'acceptLegalTerms',{version:'2026-11-10'}));
     const owner=rules.authenticatedContext(a.uid).firestore();
     await assertFails(getDoc(doc(owner,'users',a.uid)));
     await assertFails(getDoc(doc(owner,'matches',matchId)));

@@ -78,5 +78,8 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Only standard HTTPS/TLS from the OS and Firebase; no own encryption. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

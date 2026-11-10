@@ -1,6 +1,12 @@
 {
   "functions": [{"source": "functions", "codebase": "iqum", "runtime": "nodejs22", "ignore": ["node_modules", "test", "*.log"]}],
   "firestore": {"rules": "firestore.rules", "indexes": "firestore.indexes.json"},
+  "hosting": {
+    "public": "legal_site",
+    "ignore": ["publication-status.json", "**/.*"],
+    "trailingSlash": true,
+    "headers": [{"source": "**", "headers": [{"key": "X-Content-Type-Options", "value": "nosniff"}, {"key": "Referrer-Policy", "value": "no-referrer"}]}]
+  },
   "emulators": {
     "auth": {"host": "127.0.0.1", "port": 9099},
     "functions": {"host": "127.0.0.1", "port": 5001},

@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-09",
+  "version": "2026-11-10",
   "documents": [
     {
       "id": "privacy",
@@ -11,13 +11,13 @@
           "title": "1. Sorumlu ve iletişim",
           "paragraphs": [
             "IQUM'un işletmecisi ve veri sorumlusu: {{legalName}}. İletişim adresi: {{contactAddress}}. Gizlilik, veri erişimi ve silme talepleri için: {{supportEmail}}.",
-            "Yürürlük ve son güncelleme: 9 Kasım 2026. Güncel metin uygulamanın Bilgilendirme bölümünde ve {{privacyUrl}} adresinde bulunur."
+            "Yürürlük ve son güncelleme: 10 Kasım 2026. Güncel metin uygulamanın Bilgilendirme bölümünde ve {{privacyUrl}} adresinde bulunur."
           ]
         },
         {
           "title": "2. Misafir olarak oynama",
           "paragraphs": [
-            "Üç tek oyunculu oyun için hesap açmak gerekmez. Leveller, can durumu, rekorlar, yarım kalan oyunlar, ses ve titreşim tercihleri cihazında saklanır. Hesap açılmadıkça bu oyun kayıtları hesabına yüklenmez.",
+            "Üç tek oyunculu oyun için hesap açmak gerekmez. Leveller, yıldızlar, can durumu, oyun istatistikleri (deneme, başarı ve oyun süresi), rekorlar, yarım kalan oyunlar, ses ve titreşim tercihleri cihazında saklanır. Hesap açılmadıkça bu oyun kayıtları hesabına yüklenmez.",
             "İnternet bağlantısı olduğunda uygulama güvenliği ve doğru zamanın alınması için Firebase'e teknik istek yapılabilir. Bu yüzden misafir kullanımında hiçbir verinin cihaz dışına çıkmadığı iddia edilmez. Uygulamayı kaldırmak veya cihaz verilerini temizlemek, buluta aktarılmamış ilerlemeyi kaybettirebilir."
           ]
         },
@@ -25,7 +25,7 @@
           "title": "3. Hesap ve oyun verileri",
           "bullets": [
             "Google veya Apple ile girişte sağlayıcının paylaştığı kullanıcı kimliği, ad, e-posta ya da Apple'ın gizli e-posta adresi ve varsa profil resmi adresi gibi profil bilgileri Firebase Authentication tarafından işlenebilir. IQUM sağlayıcı parolanı almaz.",
-            "Hesabına bağlanmayı seçtiğinde level, can durumu, kişisel rekorlar, oyun sonuçları, aktarım kimlikleri ve kullanım koşulları kabul sürümü/tarihi saklanır.",
+            "Hesabına bağlanmayı seçtiğinde leveller, yıldızlar, can durumu, oyun istatistikleri, kişisel rekorlar, oyun sonuçları, aktarım kimlikleri ve kullanım koşulları kabul sürümü/tarihi saklanır.",
             "Düellolarda oyuncu kimlikleri ve görünen adlar, oda/eşleşme bilgisi, seçilen kartlar/cevaplar, maç skorları, sonuçlar, bağlantı ve sunucu zamanları işlenir.",
             "Rakibin görünen adını, maçın kendisine açık durumunu ve skorunu görebilir. E-posta adresin ve hesabının özel kayıtları rakibe gösterilmez."
           ]
@@ -99,7 +99,7 @@
         {
           "title": "1. Hizmet ve işletmeci",
           "paragraphs": [
-            "IQUM; Sıra Hafızası, Kart Eşleştirme ve Hafıza Yolu oyunlarını sunar. İşletmeci: {{legalName}}. İletişim: {{supportEmail}}. Son güncelleme: 9 Kasım 2026.",
+            "IQUM; Sıra Hafızası, Kart Eşleştirme ve Hafıza Yolu oyunlarını sunar. İşletmeci: {{legalName}}. İletişim: {{supportEmail}}. Son güncelleme: 10 Kasım 2026.",
             "IQUM eğlence amaçlıdır. Tıbbi tanı, tedavi, bilimsel zekâ ölçümü veya garanti edilmiş bilişsel gelişim sunmaz. Oyun puanı bir IQ sonucu değildir."
           ]
         },
@@ -114,9 +114,9 @@
           "title": "3. Oyun kuralları ve puan",
           "bullets": [
             "Kart eşleştirme düellosu 16 kart/8 çiftlik ortak tahtada sırayla oynanır. İki seçim için toplam 15 saniye verilir; ilk kart süreyi yenilemez. Çift +1 maç puanı ve devam hakkı verir; hata/süre aşımında puan düşmeden sıra değişir. 4–4 beraberliktir.",
-            "Sıra Hafızası üç turdur. Toplam doğru sayısı; eşitlikte toplam cevaplama süresi sonucu belirler. Her ikisi eşitse beraberliktir.",
+            "Sıra Hafızası düellosu 6, 9 ve 12 kartlık üç turdur. Toplam doğru sayısı; eşitlikte toplam cevaplama süresi sonucu belirler. Her ikisi eşitse beraberliktir.",
             "Düello galibiyeti +100, beraberlik +50, mağlubiyet 0 hesap puanı verir. Maç skoru ile hesap puanı farklıdır. Puanlar nakit, bahis veya ödül hakkı değildir; devredilemez.",
-            "Hafıza Yolu 30 leveldir. Yanlış adım bir kalp götürür ve leveli yeniden ezberlemeye döndürür. Başlangıç/üst sınır dört kalptir; eksik kalpler 30 dakikada bir yenilenir. İlk sürümde reklamla can kazanma yoktur.",
+            "Tek oyunculu üç oyunun her biri 30 leveldir. Hafıza Yolu'nda yanlış adım, Sıra Hafızası'nda yanlış cevap veya biten süre, Kart Eşleştirme'de biten hamle hakkı leveli yakar ve bir kalp götürür; devam eden bir denemeyi yeniden başlatmak da bir kalp götürür. Başlangıç/üst sınır dört kalptir; eksik kalpler 30 dakikada bir yenilenir. Kalp kalmadığında tek oyunculu yeni deneme başlatılamaz; düello kalp harcamaz. İlk sürümde reklamla can kazanma yoktur.",
             "Maçtan ayrılmak veya 15 saniyelik yeniden bağlanma süresinde dönmemek hükmen kayba yol açabilir. İki tarafın da bağlantısı kaybolursa maç iptal edilip puan verilmez."
           ]
         },
@@ -164,7 +164,7 @@
         {
           "title": "Neler silinir?",
           "bullets": [
-            "Firebase kimlik doğrulama hesabın, bulut profilin, ilerlemen, rekorların, puanların, oyun ve kabul/aktarım kayıtların.",
+            "Firebase kimlik doğrulama hesabın, bulut profilin, ilerlemen, yıldızların, oyun istatistiklerin, rekorların, puanların, oyun ve kabul/aktarım kayıtların.",
             "Düellolardaki adın ve kimliğinle bağlantı; gizli kart/hamle kayıtları ve ilgili oda bilgileri. Rakibin kendi sonucu/puanı kişisel kimliğinle ilişkilendirilmeden kalabilir.",
             "Bu cihazda silinen hesaba ve ona aktarılmış misafir alanlarına ait yerel kayıtlar. Başka cihazlarda önceden indirilmiş yerel kopyalar o cihazlardan da temizlenmelidir; hesap oturumu ve sunucu erişimi sona erer."
           ]
@@ -194,14 +194,16 @@
         {
           "title": "Üç oyun",
           "paragraphs": [
-            "Sıra Hafızası'nda önce hayvanların yerini/sırasını ezberle, sonra görsel panelden sıradaki hayvanı seç. Yanlış cevap o turdaki denemeni bitirir. Kart Eşleştirme'de aynı hayvan çiftlerini bul. Hafıza Yolu'nda gösterilen güvenli karoları ezberleyip sıraları atlamadan ilerle."
+            "Üç tek oyunculu oyunun her biri 30 leveldir; bir level geçilince sıradaki açılır ve geçilen her level yeniden oynanabilir. Her level 1–3 yıldız verir; en iyi yıldızın korunur.",
+            "Sıra Hafızası'nda kartların yerini ve sırasını ezberle, sonra görsel panelden sıradaki hayvanı seç. Kart sayısı 3'ten 12'ye çıkar, ezber süresi kısalır. Yanlış cevap veya biten süre leveli yakar. Hatasız geçiş 3 yıldızdır.",
+            "Kart Eşleştirme'de aynı hayvan çiftlerini bul. Tahta 6 karttan 24 karta büyür. Bir hamle iki kart açmaktır ve hamle hakkın tahtadaki kart sayısının 1,5 katıdır; hak biterse level yanar. Az hamle daha çok yıldız getirir.",
+            "Hafıza Yolu'nda güvenli yol bir kartta gösterilir. Kart kalkınca kapalı karoları en alttan başlayıp sıraları atlamadan çevir. Yanlış adım aynı yolu baştan denemeye döndürür. Hatasız geçiş 3 yıldızdır."
           ]
         },
         {
           "title": "Kalpler ve çevrimdışı kayıt",
           "paragraphs": [
-            "Hafıza Yolu'nda dört kalbin vardır. Yanlış adım bir kalp tüketir; doğru adım ve level bitirmek tüketmez. Eksik kalpler 30 dakikada bir yenilenir, yeni hata mevcut sayacı sıfırlamaz. Sıfır kalpte diğer antrenmanları oynayabilirsin.",
-            "Misafir kayıtları bu cihazda tutulur. Uygulamayı kaldırmadan veya cihaz değiştirmeden önce ilerlemeni hesabına bağlamak isteyebilirsin. İnternet olmadığında bulut eşitleme bekler; bağlantı geldiğinde tekrar denenebilir."
+            "Dört kalbin üç tek oyunculu oyunda ortaktır. Yanan level bir kalp tüketir; doğru adım, doğru cevap ve level bitirmek tüketmez. Devam eden bir denemeyi yeniden başlatmak da bir kalp tüketir. Eksik kalpler 30 dakikada bir yenilenir, yeni hata mevcut sayacı sıfırlamaz. Kalp kalmadığında tek oyunculu yeni deneme başlatılamaz; düello kalp harcamaz."
           ]
         },
         {

@@ -821,8 +821,8 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
                   ? Center(
                       key: const ValueKey('route-card'),
                       child: FractionallySizedBox(
-                        widthFactor: .84,
-                        heightFactor: .9,
+                        widthFactor: .9,
+                        heightFactor: 1,
                         child: _RouteCard(level: level),
                       ),
                     )

@@ -1,5 +1,5 @@
 {
-  "version": "2026-11-09",
+  "version": "2026-11-10",
   "draft": true,
   "missing": [
     "legalName",
@@ -8,6 +8,6 @@
     "publicOrigin",
     "targetAudience"
   ],
-  "sourceDigest": "cceb17f933fd23585bb429d6328e36c71ad925b5caeb58546724d6fecdeb9d65",
-  "generatedAt": "2026-11-09T11:54:13.726Z"
+  "sourceDigest": "d7ed4c3fb5c57806466f1890a0159598a4de59c0adeac077042728eee38a106b",
+  "generatedAt": "2026-11-10T17:54:13.536Z"
 }

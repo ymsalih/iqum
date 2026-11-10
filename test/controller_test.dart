@@ -147,7 +147,7 @@ void main() {
     'accepted deletion purges owned guest and account data, preserves another account',
     () async {
       final guest = app.scope;
-      await app.signIn(false, legalVersion: '2026-11-09');
+      await app.signIn(false, legalVersion: '2026-11-10');
       await store.saveProgress(
         'user:b',
         const PlayerProgress(life: LifeState(observedAt: 1000), level: 8),

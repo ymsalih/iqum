@@ -34,7 +34,7 @@ Bu bilgiler mevcut proje dosyalarından doğrulanamadığı için boş bırakıl
 1. Gerçek yayın bilgilerini doldur. Metin kaynağı `assets/legal/tr.json`; aynı metin uygulamada kullanılır.
 2. Önizleme: `node scripts/build_legal_site.cjs`. Taslak işareti ve eksik bilgi raporu üretir.
 3. Yayın sürümü: `node scripts/build_legal_site.cjs --release`. Bilgiler eksikse başarısız olur.
-4. `legal_site/` içeriğini seçtiğin HTTPS barındırmaya aynı yollarla yükle. Bu çalışma kapsamında site yayımlanmadı.
+4. `legal_site/` içeriğini seçtiğin HTTPS barındırmaya aynı yollarla yükle. Firebase Hosting ayarı `firebase.json` içinde hazır: `firebase deploy --only hosting` ile `https://iqum-4734b.web.app/` altında yayımlanır (bu adresi kullanacaksan `publicOrigin` olarak yaz ve 3. adımı ondan sonra çalıştır). Bu çalışma kapsamında site yayımlanmadı.
 5. Gerçek tarayıcı/gizli sekme ve telefonla, giriş olmadan, ülke/IP kısıtı ve düzenleme izni olmadan açıldığını doğrula. PDF bağlantısı kullanma. Otomatik HTTPS yönlendirmesini ve 200 yanıtlarını denetle.
 
 Mağazaya verilecek yollar:

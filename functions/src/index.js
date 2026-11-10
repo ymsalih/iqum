@@ -243,7 +243,7 @@ export const enqueueAccountDeletion=onDocumentCreated({document:'accountDeletion
   if(!event.data?.exists)return;
   await getFunctions().taskQueue(`locations/${REGION}/functions/eraseAccountTask`).enqueue({uid:event.params.uid},{dispatchDeadlineSeconds:540});
 });
-const CURRENT_LEGAL_VERSION='2026-11-09';
+const CURRENT_LEGAL_VERSION='2026-11-10';
 const acceptLegalTerms=callable(async(actor,data)=>{
   if(data.version!==CURRENT_LEGAL_VERSION)throw new GameError('failed-precondition','Güncel kullanım koşullarını açıp yeniden kabul et.');
   await actorTransaction(actor.uid,async tx=>{tx.set(ref('users',actor.uid),{legal:{termsVersion:CURRENT_LEGAL_VERSION,acceptedAt:Date.now()}},{merge:true});});
