@@ -86,7 +86,8 @@ void main() {
           FilledButton,
           'Hesabımı kalıcı olarak sil',
         );
-        await tester.ensureVisible(button);
+        // The screen is a lazy ListView: scroll until the button is built.
+        await tester.scrollUntilVisible(button, 200);
         expect(tester.widget<FilledButton>(button).onPressed, isNull);
         await tester.ensureVisible(find.byType(Checkbox));
         await tester.tap(find.byType(Checkbox));

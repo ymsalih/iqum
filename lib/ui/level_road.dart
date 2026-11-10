@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'theme.dart';
 
-/// Static ribbon, bottom-to-top progression; scrolling starts at the active stop.
+/// Winding sand road climbing bottom-to-top with 30 level stops.
+/// The road is one static CustomPainter behind a RepaintBoundary; only
+/// scrolling moves pixels. The current stop is centred on first open.
 class LevelRoad extends StatefulWidget {
   const LevelRoad({super.key, required this.level, required this.onSelect});
   final int level;
@@ -57,12 +59,13 @@ class _LevelRoadState extends State<LevelRoad> {
     height: 480,
     child: DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFEBF2F0),
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFFE3EFE4),
+        border: Border.all(color: AppColors.dark, width: 3),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: AppColors.lip(AppColors.dark, 5),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(23),
         child: ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: SingleChildScrollView(
@@ -80,69 +83,14 @@ class _LevelRoadState extends State<LevelRoad> {
                       ),
                     ),
                     for (var i = 0; i < 30; i++)
-                      Positioned(
-                        top: LevelRoad.stopY(i) - 31,
-                        left: constraints.maxWidth * LevelRoad.position(i) - 31,
-                        width: 62,
-                        height: 62,
-                        child: Semantics(
-                          sortKey: OrdinalSortKey(i.toDouble()),
-                          label:
-                              'Level ${i + 1}${i + 1 > widget.level
-                                  ? ', kilitli'
-                                  : i + 1 < widget.level
-                                  ? ', tamamlandı'
-                                  : ', sıradaki'}',
-                          child: FilledButton(
-                            key: ValueKey('level-${i + 1}'),
-                            onPressed: i + 1 <= widget.level
-                                ? () => widget.onSelect(i + 1)
-                                : null,
-                            style: FilledButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              elevation: i + 1 == widget.level ? 3 : 0,
-                              shadowColor: const Color(0x300C4943),
-                              shape: CircleBorder(
-                                side: BorderSide(
-                                  color: i + 1 == widget.level
-                                      ? AppColors.gold
-                                      : i + 1 < widget.level
-                                      ? const Color(0xFF95C5B7)
-                                      : const Color(0xFFCCD9D3),
-                                  width: i + 1 == widget.level ? 2 : 1,
-                                ),
-                              ),
-                              backgroundColor: i + 1 == widget.level
-                                  ? AppColors.dark
-                                  : const Color(0xFFDAEAE3),
-                              foregroundColor: i + 1 == widget.level
-                                  ? Colors.white
-                                  : const Color(0xFF356F61),
-                              disabledBackgroundColor: const Color(0xFFF1F5F2),
-                              disabledForegroundColor: const Color(0xFF85968E),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '${i + 1}'.padLeft(2, '0'),
-                                  style: TextStyle(
-                                    fontSize: i + 1 == widget.level ? 22 : 18,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: -.5,
-                                  ),
-                                ),
-                                if (i + 1 != widget.level)
-                                  Icon(
-                                    i + 1 > widget.level
-                                        ? Icons.lock_outline_rounded
-                                        : Icons.check,
-                                    size: 11,
-                                  ),
-                              ],
-                            ),
-                          ),
+                      _Stop(
+                        number: i + 1,
+                        current: widget.level,
+                        center: Offset(
+                          constraints.maxWidth * LevelRoad.position(i),
+                          LevelRoad.stopY(i),
                         ),
+                        onSelect: widget.onSelect,
                       ),
                   ],
                 ),
@@ -155,10 +103,124 @@ class _LevelRoadState extends State<LevelRoad> {
   );
 }
 
+class _Stop extends StatelessWidget {
+  const _Stop({
+    required this.number,
+    required this.current,
+    required this.center,
+    required this.onSelect,
+  });
+  final int number, current;
+  final Offset center;
+  final ValueChanged<int> onSelect;
+  @override
+  Widget build(BuildContext context) {
+    final isCurrent = number == current,
+        done = number < current,
+        locked = number > current;
+    final size = isCurrent ? 70.0 : 58.0;
+    final (Color face, Color ink, Color lip) = isCurrent
+        ? (AppColors.gold, AppColors.text, AppColors.amberDeep)
+        : done
+        ? (AppColors.sage, AppColors.dark, AppColors.sageDeep)
+        : (const Color(0xFFF4EEE2), const Color(0xFF8C9A93), AppColors.shade);
+    return Positioned(
+      top: center.dy - size / 2 - 3,
+      left: center.dx - size / 2,
+      width: size,
+      height: size + 5,
+      child: Semantics(
+        sortKey: OrdinalSortKey(number.toDouble()),
+        label:
+            'Level $number${locked
+                ? ', kilitli'
+                : done
+                ? ', tamamlandı'
+                : ', sıradaki'}',
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              bottom: 5,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: AppColors.lip(lip, 5),
+                ),
+                child: FilledButton(
+                  key: ValueKey('level-$number'),
+                  onPressed: locked ? null : () => onSelect(number),
+                  style: FilledButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    elevation: 0,
+                    shape: CircleBorder(
+                      side: BorderSide(
+                        color: locked ? AppColors.line : AppColors.dark,
+                        width: isCurrent ? 3 : 2.5,
+                      ),
+                    ),
+                    backgroundColor: face,
+                    foregroundColor: ink,
+                    disabledBackgroundColor: face,
+                    disabledForegroundColor: ink,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$number',
+                        style: AppColors.display(
+                          isCurrent ? 28 : 21,
+                        ).copyWith(color: ink, height: 1),
+                      ),
+                      if (locked)
+                        const Icon(Icons.lock_rounded, size: 12)
+                      else if (done)
+                        const Icon(Icons.check_rounded, size: 13),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (isCurrent)
+              Positioned(
+                top: -24,
+                left: -12,
+                right: -12,
+                child: IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.dark,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'SIRADAKİ',
+                        style: AppColors.eyebrow.copyWith(
+                          color: AppColors.goldLight,
+                          fontSize: 9,
+                          letterSpacing: .8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RoadPainter extends CustomPainter {
   const _RoadPainter(this.level);
   final int level;
-  Path ribbon(Size size, int end) {
+  Path ribbon(Size size, num end) {
     final path = Path();
     for (var i = 0; i <= end * 24; i++) {
       final t = i / 24;
@@ -174,49 +236,89 @@ class _RoadPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Quiet scenery: a few static dots of "grass"; no blur, no animation.
+    final grass = Path();
+    final rng = math.Random(7);
+    for (var i = 0; i < 90; i++) {
+      final x = rng.nextDouble() * size.width,
+          y = rng.nextDouble() * size.height;
+      grass.addOval(
+        Rect.fromCircle(center: Offset(x, y), radius: 2 + rng.nextDouble() * 3),
+      );
+    }
+    canvas.drawPath(grass, Paint()..color = const Color(0xFFCFE3D2));
+
     final road = ribbon(size, 29);
-    final paint = Paint()
+    final stroke = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(
       road,
-      paint
-        ..color = const Color(0xFFD4E0DA)
-        ..strokeWidth = 13,
+      stroke
+        ..color = const Color(0xFFCDB993)
+        ..strokeWidth = 34,
     );
     canvas.drawPath(
       road,
-      paint
-        ..color = const Color(0xFFF8FBF8)
-        ..strokeWidth = 10,
+      stroke
+        ..color = const Color(0xFFF1E5C9)
+        ..strokeWidth = 26,
     );
     if (level > 1) {
       canvas.drawPath(
         ribbon(size, level - 1),
-        paint
-          ..color = const Color(0xFF78ADA0)
-          ..strokeWidth = 10,
+        stroke
+          ..color = AppColors.sage
+          ..strokeWidth = 26,
       );
     }
-    // Quiet milestone marks: no blur, particles, or repeating animation.
+    // Dashed centre line along the whole road.
+    final dash = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 3
+      ..color = const Color(0xBFFFFFFF);
+    final dashes = Path();
+    for (final metric in road.computeMetrics()) {
+      for (double d = 0; d < metric.length; d += 22) {
+        dashes.addPath(metric.extractPath(d, d + 9), Offset.zero);
+      }
+    }
+    canvas.drawPath(dashes, dash); // one draw call for the whole centre line
+    // Chapter chips.
     final label = TextPainter(textDirection: TextDirection.ltr);
-    for (final n in [1, 11, 21]) {
+    final chip = Paint()..color = AppColors.petrol;
+    for (final (n, text) in [
+      (1, 'ODAK · 1–10'),
+      (11, 'RİTİM · 11–20'),
+      (21, 'USTALIK · 21–30'),
+    ]) {
       label.text = TextSpan(
-        text: n == 1
-            ? '01 — ODAK'
-            : n == 11
-            ? '02 — RİTİM'
-            : '03 — USTALIK',
+        text: text,
         style: const TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: AppColors.bodyFamily,
+          fontWeight: FontWeight.w800,
           fontSize: 10,
-          letterSpacing: 1.8,
-          color: AppColors.muted,
+          letterSpacing: .8,
+          color: AppColors.goldLight,
         ),
       );
       label.layout();
-      label.paint(canvas, Offset(16, LevelRoad.stopY(n - 1) - 76));
+      final origin = Offset(12, LevelRoad.stopY(n - 1) - 82);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            origin.dx,
+            origin.dy,
+            label.width + 16,
+            label.height + 8,
+          ),
+          const Radius.circular(9),
+        ),
+        chip,
+      );
+      label.paint(canvas, origin + const Offset(8, 4));
     }
   }
 

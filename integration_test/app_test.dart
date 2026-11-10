@@ -87,8 +87,8 @@ void main() {
         expect(controller.progress.completedLevels, 1);
         await tester.tap(find.text('Ana sayfaya dön'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('Antrenman →').first);
-        await tester.tap(find.text('Antrenman →').first);
+        await tester.ensureVisible(find.text('Antrenman').first);
+        await tester.tap(find.text('Antrenman').first);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Kartları göster'));
         await tester.pump(const Duration(milliseconds: 400));
@@ -117,8 +117,8 @@ void main() {
           GameKind.sequence,
         );
         expect(saved!['total'], 1);
-        await tester.ensureVisible(find.text('Antrenman →').last);
-        await tester.tap(find.text('Antrenman →').last);
+        await tester.ensureVisible(find.text('Antrenman').last);
+        await tester.tap(find.text('Antrenman').last);
         await tester.pumpAndSettle();
         final tiles = tester
             .widgetList<MemoryTile>(find.byType(MemoryTile))

@@ -8,12 +8,13 @@ import 'data/backend.dart';
 import 'data/local_store.dart';
 import 'ui/components.dart';
 import 'ui/home_screen.dart';
+import 'ui/responsive.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   LicenseRegistry.addLicense(() async* {
-    for (final family in ['Lora', 'Manrope']) {
+    for (final family in ['Baloo2', 'Nunito']) {
       final text = await rootBundle.loadString('assets/fonts/$family-OFL.txt');
       yield LicenseEntryWithLineBreaks([family], text);
     }
@@ -59,6 +60,7 @@ class _BootstrapState extends State<Bootstrap> {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppColors.theme,
+        builder: (context, child) => AppFrame(child: child!),
         home: Scaffold(
           body: SafeArea(
             child: Center(
@@ -107,6 +109,7 @@ class IqumApp extends StatelessWidget {
     locale: const Locale('tr'),
     supportedLocales: const [Locale('tr')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    builder: (context, child) => AppFrame(child: child!),
     home: const HomeScreen(),
   );
 }

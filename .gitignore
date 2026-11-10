@@ -2,6 +2,7 @@ design/.cache/
 node_modules/
 .dart_tool/
 build/
+docs/
 .flutter-plugins-dependencies
 .env
 .env.*

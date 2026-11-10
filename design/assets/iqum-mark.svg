@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88" role="img" aria-label="IQUM Q simgesi"><rect x="16" y="13" width="39" height="53" rx="11" transform="rotate(-12 35 40)" fill="none" mask="url(#counter)" stroke="#147D69" stroke-width="3.5"/><defs><mask id="counter"><rect width="88" height="88" fill="white"/><circle cx="48" cy="44" r="12.5" fill="black"/></mask></defs><rect x="27" y="18" width="44" height="55" rx="15" fill="#147D69" mask="url(#counter)"/><path d="m54 50 19 21" fill="none" stroke="#D69A47" stroke-width="5" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="IQUM simgesi">
+  <g stroke-linejoin="round">
+    <g transform="rotate(-14 46 62)">
+      <rect x="16" y="27" width="60" height="78" rx="13" fill="#B9741A" stroke="#10302B" stroke-width="4"/>
+      <rect x="16" y="21" width="60" height="78" rx="13" fill="#F2A93B" stroke="#10302B" stroke-width="4"/>
+      <rect x="24" y="29" width="44" height="62" rx="7" fill="none" stroke="#FFD58A" stroke-width="3"/>
+      <path d="M46 46l8 14-8 14-8-14z" fill="#FFD58A"/>
+    </g>
+    <g transform="rotate(9 72 62)">
+      <rect x="42" y="25" width="62" height="82" rx="14" fill="#E9DFCC" stroke="#10302B" stroke-width="4"/>
+      <rect x="42" y="19" width="62" height="82" rx="14" fill="#FFFBF3" stroke="#10302B" stroke-width="4"/>
+    </g>
+    <circle cx="73" cy="58" r="17.5" fill="none" stroke="#145249" stroke-width="10"/>
+    <circle cx="76.5" cy="54.5" r="6.5" fill="#145249"/>
+    <path d="M82 67q8 6 11 17" fill="none" stroke="#10302B" stroke-width="14" stroke-linecap="round"/>
+    <path d="M82 67q8 6 11 17" fill="none" stroke="#F2A93B" stroke-width="7" stroke-linecap="round"/>
+  </g></svg>

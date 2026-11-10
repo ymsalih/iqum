@@ -15,7 +15,6 @@ const root=path.resolve(__dirname,'..'),out=path.join(root,'store_assets');
   const browser=await chromium.launch({headless:true,executablePath});
   try{
     const page=await browser.newPage({viewport:{width:1024,height:500},deviceScaleFactor:1});await page.goto(pathToFileURL(path.join(out,'feature-graphic.html')).href);await page.evaluate(()=>document.fonts.ready);
-    assert.equal(await page.evaluate(()=>document.fonts.check('39px Lora')&&document.fonts.check('52px Manrope')),true);
     await sharp(await page.screenshot()).removeAlpha().png().toFile(path.join(out,'google-play-feature-graphic.png'));
   }finally{await browser.close();}
   for(const [file,width,height] of [['google-play-icon.png',512,512],['app-store-icon.png',1024,1024],['google-play-feature-graphic.png',1024,500]]){

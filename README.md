@@ -1,6 +1,6 @@
 # IQUM
 
-Android ve iOS için Flutter hafıza oyunu. Türkçe, dikey ekran; petrol yeşili, porselen ve kehribar renkler, aşağıdan yukarıya kıvrılan level yolu ve kodla çalışan üç boyutlu kart/karo animasyonları. Tasarım kararları `docs/DESIGN_REVIEW.md` içindedir.
+Android ve iOS için Flutter hafıza oyunu. Türkçe, dikey ekran; "masa oyunu" görünümü: porselen zemin, petrol yeşili keçe tahtalar, ölçülü kehribar vurgu ve alt kenarı (dudak) olan dokunsal parçalar. Aşağıdan yukarıya kıvrılan level yolu, perspektifli kart çevirme ve Rive ile canlanan 12 özgün hayvan. Telefon (320 dp'den itibaren), tablet ve 1,3× yazı ölçeği için responsive.
 
 ## Çalışan özellikler
 
@@ -55,7 +55,16 @@ Yerel Firebase testleri Java 21+ ve Node 22 kullanır. Android entegrasyon testi
 
 ## Kod yapısı
 
-Etkileşim paketleri, süreler ve Rive dosyası sözleşmesi [hareket notlarında](docs/MOTION.md) açıklanır. `.riv` hayvan dosyaları henüz yoktur; bu durumda özgün PNG çizimleri kullanılır.
+### Tasarım sistemi
+
+- `lib/ui/theme.dart`: renk/tipografi belirteçleri. Başlıklar Baloo 2 (600/800), metinler Nunito (500/700/800); fontlar Latin + Türkçe karakterlere alt kümelenmiş statik dosyalardır.
+- `lib/ui/components.dart`: `Piece` (dudaklı yüzey), `IqumButton` (basınca dudağa gömülen tuş), `MemoryTile` (perspektifli çevirme, eşleşmede zıplama, hatada sallanma), `PathTile`, `ClockStrip`, `StatPill`, `AnimalChoice`.
+- `lib/ui/responsive.dart`: `AppFrame` yazı ölçeğini 1,3× ile sınırlar; 640 dp'den geniş ekranlarda oyunu ortalanmış dikey sütunda gösterir. `FitBoard` oyun tahtalarını görünür yüksekliğe sığdırır.
+- Performans: gölgeler bulanıksız dudaklardır; blur, shader, `Opacity` katmanı veya sürekli animasyon yoktur. Yol haritası tek seferlik `CustomPainter`, kart sırtı küçültülmüş tek PNG'dir.
+
+### Rive hayvanları
+
+`assets/art/<hayvan>.riv` dosyaları `node design/rive/build_animals.cjs` ile özgün vektör çizimlerden (`design/animals.cjs`) üretilir; parçalar ve hareketler `design/rive/animal_rigs.cjs` içindedir. Her dosyada varsayılan state machine vardır: giriş → `reveal` (kart açılınca ~0,57 sn), `match` tetikleyicisi → `celebrate` (eşleşme/doğru cevap). İkisi de tek seferliktir; klip bitince Rive kare üretmez ve `AnimalArt` denetleyiciyi kapatır. Rive çalışamazsa veya hareketi azaltma açıksa aynı çizimin PNG'si gösterilir. `test/rive_art_test.dart` dosyaları gerçek Rive çalışma zamanıyla doğrular (masaüstü kütüphanesi için bir kez `dart run rive_native:setup --platform windows`).
 
 - `lib/domain`: saf Dart oyun kuralları, 30 level tanımı ve can cüzdanı.
 - `lib/application`: Riverpod, kayıt/hesap kapsamı, idempotent aktarım ve ses/titreşim.
@@ -63,8 +72,8 @@ Etkileşim paketleri, süreler ve Rive dosyası sözleşmesi [hareket notlarınd
 - `lib/ui`: Flutter ekranları ve yalnızca hareket eden kart/karoyu güncelleyen bileşenler.
 - `functions/src`: saf sunucu motoru, ortak `api` çağrı noktası, atomik sonuçlandırma ve Cloud Tasks.
 - `firestore.rules`: üyeye özel maç okuma; puan, sıra ve gizli veriye istemci yazma yasağı.
-- `assets`: 12 hayvan çizimi, marka görselleri, kısa WAV sesleri ve açık lisanslı Lora/Manrope fontları.
+- `assets`: 12 hayvan çizimi (PNG + Rive), marka görselleri, kısa WAV sesleri ve açık lisanslı Baloo 2/Nunito fontları.
 
-Hayvanların düzenlenebilir vektör kaynağı `design/animals.cjs` içindedir. `node design/build.cjs` ve ardından `node scripts/prepare_assets.cjs` ile önizleme ve Flutter PNG dosyaları yenilenir; bu adım `sharp` paketini gerektirir. `node scripts/preview_animals.cjs`, 12 hayvanı büyük boyutta ve 40 piksel kart boyutunda karşılaştıran `output/artwork/animals-overview.png` görselini oluşturur.
+Hayvanların düzenlenebilir vektör kaynağı `design/animals.cjs` içindedir. `node design/build.cjs` ve ardından `node scripts/prepare_assets.cjs` ile önizleme ve Flutter PNG dosyaları yenilenir; bu adım `sharp` paketini gerektirir. Logo, uygulama/mağaza ikonları, kart sırtı ve tanıtım grafiği `node design/brand/build_brand.cjs` (`sharp` + `opentype.js`), ses efektleri `node design/sound/build_sounds.cjs` ile üretilir. `node scripts/preview_animals.cjs`, 12 hayvanı büyük boyutta ve 40 piksel kart boyutunda karşılaştıran `output/artwork/animals-overview.png` görselini oluşturur.
 
 Ürün kararları `docs/PRODUCT_SPEC.md`, ilk geliştirme planı `docs/IMPLEMENTATION.md` içindedir. Onaylanan tasarım kaynakları `design/` altında korunur; `design/index.html` önceki tarayıcı prototipidir, gerçek Flutter uygulaması değildir.

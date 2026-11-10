@@ -8,16 +8,18 @@ import 'theme.dart';
 
 abstract final class MotionTokens {
   static const press = Duration(milliseconds: 70);
-  static const feedback = Duration(milliseconds: 240);
-  static const flip = Duration(milliseconds: 340);
+  static const feedback = Duration(milliseconds: 280);
+  static const flip = Duration(milliseconds: 360);
+  static const settle = Duration(milliseconds: 420);
   static const counter = Duration(milliseconds: 260);
-  static const radius = 14.0;
+  static const radius = 16.0;
+  static const pressedScale = .965;
 }
 
 class _ReleaseSpring extends Simulation {
   _ReleaseSpring(double value, double velocity)
     : spring = SpringSimulation(
-        const SpringDescription(mass: 1, stiffness: 450, damping: 28),
+        const SpringDescription(mass: 1, stiffness: 520, damping: 24),
         value,
         1,
         velocity,
@@ -31,12 +33,20 @@ class _ReleaseSpring extends Simulation {
   bool isDone(double time) => time >= .32;
 }
 
-/// Adds pointer feedback without replacing the native button's activation,
+/// Pointer feedback without replacing the native button's activation,
 /// semantics, keyboard support, or disabled/busy callback handling.
+/// With [sink] the child also moves down into its lip while pressed, like a
+/// physical key; the spring release adds a small overshoot.
 class SpringPress extends StatefulWidget {
-  const SpringPress({super.key, required this.child, required this.enabled});
+  const SpringPress({
+    super.key,
+    required this.child,
+    required this.enabled,
+    this.sink = 0,
+  });
   final Widget child;
   final bool enabled;
+  final double sink;
   @override
   State<SpringPress> createState() => _SpringPressState();
 }
@@ -82,7 +92,7 @@ class _SpringPressState extends State<SpringPress>
     onPointerDown: (_) {
       if (widget.enabled && !reduced) {
         scale.animateTo(
-          .97,
+          MotionTokens.pressedScale,
           duration: MotionTokens.press,
           curve: Curves.easeOut,
         );
@@ -93,8 +103,17 @@ class _SpringPressState extends State<SpringPress>
     child: AnimatedBuilder(
       animation: scale,
       child: widget.child,
-      builder: (context, child) =>
-          Transform.scale(scale: scale.value, child: child),
+      builder: (context, child) {
+        final pressed = ((1 - scale.value) / (1 - MotionTokens.pressedScale))
+            .clamp(-1.0, 1.0);
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..translateByDouble(0, widget.sink * pressed, 0, 1)
+            ..scaleByDouble(scale.value, scale.value, 1, 1),
+          child: child,
+        );
+      },
     ),
   );
 }
@@ -122,7 +141,7 @@ class ScoreNumber extends StatelessWidget {
                 prefix: prefix,
                 suffix: suffix,
                 duration: MotionTokens.counter,
-                curve: Curves.easeOutCubic,
+                curve: Curves.easeOutBack,
                 textStyle: style,
               ),
             ),
@@ -130,6 +149,8 @@ class ScoreNumber extends StatelessWidget {
   );
 }
 
+/// One-shot feedback for a stepped tile: wrong = shake + coral flash,
+/// correct = quick squash-and-pop. Nothing repeats.
 class StepFeedback extends StatelessWidget {
   const StepFeedback({
     super.key,
@@ -150,63 +171,28 @@ class StepFeedback extends StatelessWidget {
           ? [
               ShakeEffect(
                 duration: MotionTokens.feedback,
-                hz: 3,
-                offset: const Offset(3, 0),
+                hz: 5,
+                offset: const Offset(5, 0),
               ),
               TintEffect(
                 duration: MotionTokens.feedback,
                 color: AppColors.red,
-                begin: .28,
+                begin: .35,
                 end: 0,
               ),
             ]
           : [
               ScaleEffect(
                 duration: MotionTokens.feedback,
-                begin: const Offset(.95, .95),
+                curve: Curves.easeOutBack,
+                begin: const Offset(.86, .86),
                 end: const Offset(1, 1),
-              ),
-              TintEffect(
-                duration: MotionTokens.feedback,
-                color: AppColors.green,
-                begin: .3,
-                end: 0,
-              ),
-              CustomEffect(
-                duration: MotionTokens.feedback,
-                builder: (_, value, child) => CustomPaint(
-                  foregroundPainter: _SuccessWave(value),
-                  child: child,
-                ),
               ),
             ],
       child: child,
     );
     return RepaintBoundary(child: feedback);
   }
-}
-
-class _SuccessWave extends CustomPainter {
-  const _SuccessWave(this.progress);
-  final double progress;
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.clipRect(Offset.zero & size);
-    canvas.drawCircle(
-      size.center(Offset.zero),
-      size.longestSide * .7 * progress,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = AppColors.green.withValues(alpha: .5 * (1 - progress)),
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_SuccessWave oldDelegate) =>
-      oldDelegate.progress != progress;
 }
 
 class ResultCelebration extends StatefulWidget {
@@ -224,7 +210,7 @@ class ResultCelebration extends StatefulWidget {
 class _ResultCelebrationState extends State<ResultCelebration>
     with WidgetsBindingObserver {
   final controller = ConfettiController(
-    duration: const Duration(milliseconds: 120),
+    duration: const Duration(milliseconds: 160),
   );
   Timer? stop;
   bool started = false, visible = false;
@@ -284,23 +270,24 @@ class _ResultCelebrationState extends State<ResultCelebration>
       widget.child,
       if (visible)
         Positioned(
-          top: 110,
+          top: 120,
           child: IgnorePointer(
             child: RepaintBoundary(
               child: ConfettiWidget(
                 confettiController: controller,
                 blastDirectionality: BlastDirectionality.explosive,
-                emissionFrequency: .04,
-                numberOfParticles: 6,
-                maxBlastForce: 9,
-                minBlastForce: 4,
-                minimumSize: const Size(3, 3),
-                maximumSize: const Size(5, 7),
-                gravity: .25,
+                emissionFrequency: .05,
+                numberOfParticles: 9,
+                maxBlastForce: 14,
+                minBlastForce: 6,
+                minimumSize: const Size(6, 4),
+                maximumSize: const Size(10, 7),
+                gravity: .3,
                 colors: const [
-                  AppColors.green,
                   AppColors.gold,
-                  AppColors.goldLight,
+                  AppColors.sage,
+                  AppColors.red,
+                  AppColors.petrolMid,
                 ],
                 shouldLoop: false,
               ),

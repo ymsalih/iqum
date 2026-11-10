@@ -7,6 +7,7 @@ import '../application/app_controller.dart';
 import '../data/backend.dart';
 import '../domain/models.dart';
 import 'components.dart';
+import 'responsive.dart';
 import 'home_screen.dart';
 import 'solo_screen.dart';
 import 'theme.dart';
@@ -16,7 +17,7 @@ class DuelPage extends StatelessWidget {
   final GameKind initialGame;
   @override
   Widget build(BuildContext context) => GameScaffold(
-    label: 'İKİ KİŞİLİK',
+    label: 'Düello',
     child: DuelHub(initialGame: initialGame),
   );
 }
@@ -68,96 +69,101 @@ class _DuelHubState extends ConsumerState<DuelHub> {
   @override
   Widget build(BuildContext context) {
     final account = ref.watch(appProvider).account;
+    final gutter = Responsive.gutter(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 22, 24, 28),
+      padding: EdgeInsets.fromLTRB(gutter, 18, gutter, 26),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('İKİ KİŞİLİK', style: AppColors.eyebrow),
-          const SizedBox(height: 16),
-          Text('Hafızalar\nkarşılaşsın.', style: AppColors.display(33)),
-          const SizedBox(height: 12),
+          Text('Hafızalar\nkarşılaşsın.', style: AppColors.display(32)),
+          const SizedBox(height: 6),
           const Text(
             'Bir rakip bul ya da tanıdığın birini davet et.',
             style: AppColors.caption,
           ),
-          const SizedBox(height: 24),
-          SegmentedButton<GameKind>(
-            segments: const [
-              ButtonSegment(
-                value: GameKind.matching,
-                label: Text('Kart Eşleştirme', style: TextStyle(fontSize: 11)),
-              ),
-              ButtonSegment(
-                value: GameKind.sequence,
-                label: Text('Sıra Hafızası', style: TextStyle(fontSize: 11)),
-              ),
-            ],
-            selected: {kind},
-            showSelectedIcon: false,
-            onSelectionChanged: busy
-                ? null
-                : (value) => setState(() => kind = value.first),
-            style: const ButtonStyle(visualDensity: VisualDensity.compact),
+          const SizedBox(height: 18),
+          _GamePicker(
+            value: kind,
+            onChanged: busy ? null : (value) => setState(() => kind = value),
           ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Avatar(account?.name.characters.first ?? 'S', large: true),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 26),
-                child: Text(
-                  'vs',
-                  style: TextStyle(
-                    fontFamily: 'Lora',
-                    fontSize: 20,
-                    fontStyle: FontStyle.italic,
-                    color: AppColors.muted,
-                  ),
+          const SizedBox(height: 16),
+          Piece(
+            color: AppColors.petrol,
+            lip: AppColors.dark,
+            border: AppColors.dark,
+            radius: 24,
+            depth: 6,
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 18),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _Avatar(account?.name.characters.first ?? 'S', large: true),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 18),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.dark, width: 2),
+                        boxShadow: AppColors.lip(AppColors.amberDeep, 3),
+                      ),
+                      child: Text('VS', style: AppColors.display(20)),
+                    ),
+                    const _Avatar('?', large: true, opponent: true),
+                  ],
                 ),
-              ),
-              const _Avatar('?', large: true, opponent: true),
-            ],
+                const SizedBox(height: 14),
+                Text(
+                  kind == GameKind.matching
+                      ? 'Aynı tahtayı görür, sırayla kart açarsınız.\nEşini bulan puanı alır ve devam eder.'
+                      : 'Aynı diziyi görür, aynı anda hatırlarsınız.\nÜç turun sonunda en iyi hafıza kazanır.',
+                  textAlign: TextAlign.center,
+                  style: AppColors.caption.copyWith(color: AppColors.goldLight),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 28),
-          Text(
-            kind == GameKind.matching
-                ? 'Aynı tahtayı görür, sırayla kart açarsınız.\nEşini bulan puanı alır ve devam eder.'
-                : 'Aynı diziyi görür, aynı anda hatırlarsınız.\nÜç turun sonunda en iyi hafıza kazanır.',
-            textAlign: TextAlign.center,
-            style: AppColors.caption,
-          ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 18),
           IqumButton(
             'Rastgele rakip bul',
+            accent: true,
             busy: busy,
-            icon: Icons.arrow_forward,
+            icon: Icons.bolt_rounded,
             onPressed: () => request('findMatch'),
           ),
-          const SizedBox(height: 23),
+          const SizedBox(height: 18),
           const Row(
             children: [
               Expanded(child: Divider()),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'ya da arkadaşınla oyna',
-                  style: TextStyle(fontSize: 10, color: AppColors.muted),
+              Flexible(
+                flex: 3,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'ya da arkadaşınla oyna',
+                    textAlign: TextAlign.center,
+                    style: AppColors.caption,
+                  ),
                 ),
               ),
               Expanded(child: Divider()),
             ],
           ),
-          const SizedBox(height: 23),
+          const SizedBox(height: 14),
           IqumButton(
             'Oda oluştur',
             secondary: true,
-            icon: Icons.add,
+            icon: Icons.add_rounded,
             onPressed: busy ? null : () => request('createRoom'),
           ),
           const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: TextField(
@@ -170,42 +176,43 @@ class _DuelHubState extends ConsumerState<DuelHub> {
                   decoration: const InputDecoration(
                     hintText: 'ODA KODU',
                     counterText: '',
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.key_rounded),
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 14,
-                      vertical: 12,
+                      vertical: 14,
                     ),
                   ),
-                  style: const TextStyle(letterSpacing: 3, fontSize: 15),
+                  style: AppColors.display(
+                    20,
+                  ).copyWith(letterSpacing: 4, height: 1.2),
                 ),
               ),
               const SizedBox(width: 10),
-              FilledButton(
-                onPressed: busy
-                    ? null
-                    : () {
-                        if (code.text.length != 6) {
-                          showError(
-                            context,
-                            'Lütfen altı karakterli oda kodunu gir.',
+              SizedBox(
+                width: 92,
+                child: IqumButton(
+                  'Katıl',
+                  onPressed: busy
+                      ? null
+                      : () {
+                          if (code.text.length != 6) {
+                            showError(
+                              context,
+                              'Lütfen altı karakterli oda kodunu gir.',
+                            );
+                            return;
+                          }
+                          unawaited(
+                            request('joinRoom', {
+                              'code': code.text.toUpperCase(),
+                            }),
                           );
-                          return;
-                        }
-                        unawaited(
-                          request('joinRoom', {
-                            'code': code.text.toUpperCase(),
-                          }),
-                        );
-                      },
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.green,
-                  minimumSize: const Size(64, 50),
+                        },
                 ),
-                child: const Text('Katıl'),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             account == null
                 ? 'Düello için hesabına giriş yapman gerekir.'
@@ -214,12 +221,10 @@ class _DuelHubState extends ConsumerState<DuelHub> {
             style: AppColors.caption,
           ),
           if (account != null)
-            TextButton(
+            TextButton.icon(
               onPressed: busy ? null : () => request('resumeMatch'),
-              child: const Text(
-                'Devam eden maça dön',
-                style: TextStyle(fontSize: 12, color: AppColors.muted),
-              ),
+              icon: const Icon(Icons.replay_rounded, size: 18),
+              label: const Text('Devam eden maça dön'),
             ),
         ],
       ),
@@ -227,24 +232,107 @@ class _DuelHubState extends ConsumerState<DuelHub> {
   }
 }
 
-class _Avatar extends StatelessWidget {
-  const _Avatar(this.letter, {this.large = false, this.opponent = false});
-  final String letter;
-  final bool large, opponent;
+/// Two-option chunky toggle for the duel game type.
+class _GamePicker extends StatelessWidget {
+  const _GamePicker({required this.value, required this.onChanged});
+  final GameKind value;
+  final ValueChanged<GameKind>? onChanged;
   @override
   Widget build(BuildContext context) => Container(
-    width: large ? 64 : 36,
-    height: large ? 64 : 36,
+    padding: const EdgeInsets.all(4),
+    decoration: BoxDecoration(
+      color: AppColors.shade,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Row(
+      children: [
+        for (final (k, label, icon) in [
+          (GameKind.matching, 'Kart Eşleştirme', Icons.style_rounded),
+          (
+            GameKind.sequence,
+            'Sıra Hafızası',
+            Icons.format_list_numbered_rounded,
+          ),
+        ])
+          Expanded(
+            child: Semantics(
+              selected: value == k,
+              button: true,
+              child: GestureDetector(
+                onTap: onChanged == null ? null : () => onChanged!(k),
+                child: AnimatedContainer(
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  margin: EdgeInsets.only(bottom: value == k ? 3 : 0),
+                  decoration: BoxDecoration(
+                    color: value == k ? AppColors.paper : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: value == k
+                        ? AppColors.lip(const Color(0xFFCDBFA6), 3)
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        icon,
+                        size: 17,
+                        color: value == k ? AppColors.green : AppColors.muted,
+                      ),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          label,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppColors.body.copyWith(
+                            fontSize: 13,
+                            color: value == k
+                                ? AppColors.text
+                                : AppColors.muted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar(
+    this.letter, {
+    this.large = false,
+    this.opponent = false,
+    this.active = false,
+  });
+  final String letter;
+  final bool large, opponent, active;
+  @override
+  Widget build(BuildContext context) => Container(
+    width: large ? 66 : 40,
+    height: large ? 66 : 40,
+    margin: const EdgeInsets.only(bottom: 3),
     alignment: Alignment.center,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
-      color: opponent ? const Color(0xFFDFE5D7) : const Color(0xFFE8DDC5),
-      border: Border.all(color: AppColors.gold),
-      boxShadow: large
-          ? const [BoxShadow(color: Color(0xFFBBAA87), offset: Offset(0, 4))]
-          : null,
+      color: opponent ? const Color(0xFFDDEFE3) : AppColors.goldLight,
+      border: Border.all(
+        color: active ? AppColors.gold : AppColors.dark,
+        width: active ? 3.5 : 2.5,
+      ),
+      boxShadow: AppColors.lip(AppColors.dark, 3),
     ),
-    child: Text(letter, style: AppColors.display(large ? 25 : 15)),
+    child: Text(
+      letter.toUpperCase(),
+      style: AppColors.display(large ? 28 : 17),
+    ),
   );
 }
 
@@ -466,12 +554,25 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
     final List<Widget> content = [];
     if (connectionError != null) {
       content.add(
-        Container(
-          padding: const EdgeInsets.all(12),
-          color: AppColors.goldLight.withValues(alpha: .35),
+        Piece(
+          color: const Color(0xFFFFF1D6),
+          lip: AppColors.goldLight,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
           child: Column(
             children: [
-              Text(connectionError!, style: AppColors.caption),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.wifi_off_rounded,
+                    color: AppColors.amberDeep,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(connectionError!, style: AppColors.body),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               ClockStrip(
                 label: 'Geri dönme süresi',
                 deadline: lastAck + 15000,
@@ -486,7 +587,7 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
           ),
         ),
       );
-      content.add(const SizedBox(height: 15));
+      content.add(const SizedBox(height: 14));
     }
     if (m != null) {
       if (m['status'] == 'waiting') {
@@ -501,11 +602,11 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
         ]);
       } else if (m['phase'] == 'countdown') {
         content.addAll([
-          const SizedBox(height: 50),
+          const SizedBox(height: 40),
           Text(
             'Hafızan hazır mı?',
             textAlign: TextAlign.center,
-            style: AppColors.display(33),
+            style: AppColors.display(34),
           ),
           const GameNote('İki oyuncu da hazır. Oyun birlikte başlayacak.'),
           ClockStrip(
@@ -529,14 +630,19 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
       },
       child: GameScaffold(
         label: m?['status'] == 'waiting'
-            ? 'DÜELLO LOBİSİ'
+            ? 'Düello lobisi'
             : m?['gameType'] == 'matching'
-            ? 'ORTAK TAHTA · DÜELLO'
-            : 'EŞZAMANLI · DÜELLO',
+            ? 'Ortak tahta · Düello'
+            : 'Eşzamanlı · Düello',
         child: m == null && connectionError == null
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
+                padding: EdgeInsets.fromLTRB(
+                  Responsive.gutter(context),
+                  6,
+                  Responsive.gutter(context),
+                  24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: content,
@@ -556,72 +662,108 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
             : 'Bir hafıza daha aranıyor.',
         style: AppColors.display(30),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 4),
       Text(
         m['gameType'] == 'matching'
             ? 'Kart Eşleştirme · 2 oyuncu'
             : 'Sıra Hafızası · 2 oyuncu',
         style: AppColors.caption,
       ),
-      const SizedBox(height: 25),
+      const SizedBox(height: 18),
       if (m['mode'] == 'private')
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEAE3D5),
-            borderRadius: BorderRadius.circular(12),
-          ),
+        Piece(
+          color: AppColors.petrol,
+          lip: AppColors.dark,
+          border: AppColors.dark,
+          padding: const EdgeInsets.fromLTRB(18, 10, 8, 10),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                m['code'] as String,
-                style: AppColors.display(27).copyWith(letterSpacing: 5),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ODA KODU',
+                      style: AppColors.eyebrow.copyWith(
+                        color: AppColors.goldLight,
+                      ),
+                    ),
+                    Text(
+                      m['code'] as String,
+                      style: AppColors.display(
+                        32,
+                      ).copyWith(letterSpacing: 6, color: AppColors.paper),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
                 tooltip: 'Oda kodunu kopyala',
+                color: AppColors.goldLight,
                 onPressed: () {
                   unawaited(
                     Clipboard.setData(ClipboardData(text: m['code'] as String)),
                   );
                   showError(context, 'Oda kodu kopyalandı.');
                 },
-                icon: const Icon(Icons.copy, size: 19),
+                icon: const Icon(Icons.copy_rounded, size: 22),
               ),
             ],
           ),
         ),
-      const SizedBox(height: 20),
-      for (var i = 0; i < 2; i++)
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Row(
-            children: [
-              _Avatar(
-                i < players.length
-                    ? (players[i]['name'] as String).characters.first
-                    : '?',
-                opponent: i != me,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  i < players.length
-                      ? (i == me ? 'Sen' : players[i]['name'] as String)
-                      : 'Oyuncu bekleniyor',
-                  style: const TextStyle(fontSize: 13),
+      const SizedBox(height: 14),
+      Piece(
+        border: AppColors.line,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        child: Column(
+          children: [
+            for (var i = 0; i < 2; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    _Avatar(
+                      i < players.length
+                          ? (players[i]['name'] as String).characters.first
+                          : '?',
+                      opponent: i != me,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        i < players.length
+                            ? (i == me ? 'Sen' : players[i]['name'] as String)
+                            : 'Oyuncu bekleniyor',
+                        style: AppColors.body,
+                      ),
+                    ),
+                    if (i < players.length && players[i]['ready'] == true)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.sage,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Hazır',
+                          style: AppColors.eyebrow.copyWith(
+                            color: AppColors.dark,
+                            letterSpacing: .3,
+                          ),
+                        ),
+                      )
+                    else
+                      const Text('…', style: AppColors.caption),
+                  ],
                 ),
               ),
-              Text(
-                i < players.length && players[i]['ready'] == true
-                    ? 'Hazır'
-                    : '…',
-                style: const TextStyle(color: AppColors.green, fontSize: 12),
-              ),
-            ],
-          ),
+          ],
         ),
-      const SizedBox(height: 20),
+      ),
+      const SizedBox(height: 16),
       ClockStrip(
         label: m['mode'] == 'private' ? 'Oda süresi' : 'Arama süresi',
         deadline: intValue(m['expiresAt']),
@@ -630,7 +772,9 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
       ),
       IqumButton(
         ready ? 'Rakibin bekleniyor' : 'Hazırım',
+        accent: !ready,
         busy: sending,
+        icon: ready ? null : Icons.check_rounded,
         onPressed: ready ? null : () => command('setReady'),
       ),
       const SizedBox(height: 12),
@@ -640,52 +784,80 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
 
   Widget _scores(Map<String, dynamic> m) {
     final players = (m['players'] as List).cast<Map>(),
-        scores = (m['scores'] as List).map((s) => intValue(s)).toList();
+        scores = (m['scores'] as List).map((s) => intValue(s)).toList(),
+        turnIsMine = m['turn'] == me,
+        sequential = m['gameType'] == 'matching';
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 22),
-      child: Row(
-        children: [
-          const _Avatar('S'),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              'Sen',
-              style: TextStyle(
-                fontSize: 12,
-                color: m['turn'] == me ? AppColors.green : AppColors.text,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Piece(
+        color: AppColors.petrol,
+        lip: AppColors.dark,
+        border: AppColors.dark,
+        radius: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            _Avatar('S', active: sequential && turnIsMine),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Sen',
+                style: AppColors.body.copyWith(
+                  color: sequential && turnIsMine
+                      ? AppColors.goldLight
+                      : AppColors.paper,
+                ),
               ),
             ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ScoreNumber(
-                scores[me < 0 ? 0 : me],
-                style: AppColors.display(25),
+            DefaultTextStyle.merge(
+              style: AppColors.display(30).copyWith(color: AppColors.paper),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ScoreNumber(
+                    scores[me < 0 ? 0 : me],
+                    style: AppColors.display(
+                      30,
+                    ).copyWith(color: AppColors.paper),
+                  ),
+                  Text(
+                    ' : ',
+                    style: AppColors.display(
+                      30,
+                    ).copyWith(color: AppColors.goldLight),
+                  ),
+                  ScoreNumber(
+                    scores[me < 0 ? 1 : 1 - me],
+                    style: AppColors.display(
+                      30,
+                    ).copyWith(color: AppColors.paper),
+                  ),
+                ],
               ),
-              Text(' : ', style: AppColors.display(25)),
-              ScoreNumber(
-                scores[me < 0 ? 1 : 1 - me],
-                style: AppColors.display(25),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Flexible(
-            child: Text(
-              me < 0 ? 'Rakip' : players[1 - me]['name'] as String,
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12),
             ),
-          ),
-          const SizedBox(width: 9),
-          _Avatar(
-            me < 0 ? '?' : (players[1 - me]['name'] as String).characters.first,
-            opponent: true,
-          ),
-        ],
+            Expanded(
+              child: Text(
+                me < 0 ? 'Rakip' : players[1 - me]['name'] as String,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppColors.body.copyWith(
+                  color: sequential && !turnIsMine
+                      ? AppColors.goldLight
+                      : AppColors.paper,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _Avatar(
+              me < 0
+                  ? '?'
+                  : (players[1 - me]['name'] as String).characters.first,
+              opponent: true,
+              active: sequential && !turnIsMine,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -694,10 +866,10 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
     final revealed = Map<String, dynamic>.from(m['revealed'] as Map? ?? {}),
         matched = (m['matched'] as List? ?? []).map((e) => intValue(e)).toSet(),
         mine = m['turn'] == me,
-        feedback = m['phase'] == 'feedback';
+        feedback = m['phase'] == 'feedback',
+        mismatch = feedback && m['lastEvent'] == 'mismatch';
     return [
-      Text('Eşini hatırla.', style: AppColors.display()),
-      const SizedBox(height: 8),
+      Text('Eşini hatırla.', style: AppColors.display(28)),
       const Text(
         'Aynı tahta. İki hafıza. Sıra sende mi?',
         style: AppColors.caption,
@@ -713,34 +885,42 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
         totalMs: feedback ? 900 : 15000,
         now: () => now,
       ),
-      Board(
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 16,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            crossAxisSpacing: 9,
-            mainAxisSpacing: 11,
-            childAspectRatio: .84,
-          ),
-          itemBuilder: (context, i) => MemoryTile(
-            key: ValueKey('duel-$i'),
-            index: i,
-            animal: revealed['$i'] as String?,
-            open: revealed.containsKey('$i'),
-            matched: matched.contains(i),
-            onTap:
-                mine &&
-                    !feedback &&
-                    !sending &&
-                    !matched.contains(i) &&
-                    !revealed.containsKey('$i')
-                ? () => command('submitMove', {
-                    'actionId': newId(),
-                    'move': {'index': i},
-                  })
-                : null,
+      FitBoard(
+        aspect: .8,
+        reserved: 330,
+        child: Board(
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 16,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 9,
+              mainAxisSpacing: 10,
+              childAspectRatio: .8,
+            ),
+            itemBuilder: (context, i) => MemoryTile(
+              key: ValueKey('duel-$i'),
+              index: i,
+              animal: revealed['$i'] as String?,
+              open: revealed.containsKey('$i'),
+              matched: matched.contains(i),
+              wrong:
+                  mismatch &&
+                  revealed.containsKey('$i') &&
+                  !matched.contains(i),
+              onTap:
+                  mine &&
+                      !feedback &&
+                      !sending &&
+                      !matched.contains(i) &&
+                      !revealed.containsKey('$i')
+                  ? () => command('submitMove', {
+                      'actionId': newId(),
+                      'move': {'index': i},
+                    })
+                  : null,
+            ),
           ),
         ),
       ),
@@ -753,10 +933,12 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
             ? '15 saniye doldu. Puan eksilmedi.'
             : 'Açılan kartları ikiniz de görüyorsunuz.',
       ),
-      const Divider(),
-      Text(
-        'Bulunan çiftler ${matched.length ~/ 2} / 8',
-        style: AppColors.caption,
+      Center(
+        child: StatPill(
+          label: 'BULUNAN ÇİFT',
+          icon: Icons.style_rounded,
+          value: Text('${matched.length ~/ 2}/8'),
+        ),
       ),
     ];
   }
@@ -772,8 +954,7 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
         done = (m['roundDone'] as List? ?? [false, false]),
         my = me < 0 ? 0 : me;
     return [
-      Text('Sırası aklında mı?', style: AppColors.display(30)),
-      const SizedBox(height: 8),
+      Text('Sırası aklında mı?', style: AppColors.display(28)),
       Text(
         'Tur ${round + 1} / 3 · Aynı dizi, iki hafıza.',
         style: AppColors.caption,
@@ -795,74 +976,64 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
             : 2000,
         now: () => now,
       ),
-      Board(
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: counts[round],
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: counts[round] == 12 ? 4 : 3,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 11,
-            childAspectRatio: .95,
-          ),
-          itemBuilder: (context, i) => MemoryTile(
-            index: i,
-            number: i + 1,
-            animal: lastPattern != null && i < lastPattern!.length
-                ? lastPattern![i]
-                : null,
-            open: preview || i < correct[my],
-            matched: !preview && i < correct[my],
+      FitBoard(
+        aspect:
+            (counts[round] == 12 ? 4 : 3) *
+            .9 /
+            (counts[round] / (counts[round] == 12 ? 4 : 3)).ceil(),
+        reserved: answer && done[my] != true ? 620 : 380,
+        child: Board(
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: counts[round],
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: counts[round] == 12 ? 4 : 3,
+              crossAxisSpacing: 9,
+              mainAxisSpacing: 10,
+              childAspectRatio: .9,
+            ),
+            itemBuilder: (context, i) => MemoryTile(
+              index: i,
+              number: i + 1,
+              animal: lastPattern != null && i < lastPattern!.length
+                  ? lastPattern![i]
+                  : null,
+              open: preview || i < correct[my],
+              matched: !preview && i < correct[my],
+              highlight: answer && done[my] != true && i == correct[my],
+            ),
           ),
         ),
       ),
       if (answer && done[my] != true) ...[
         const GameNote('Sıradaki kartın hayvanı hangisiydi?'),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 4,
-          crossAxisSpacing: 7,
-          mainAxisSpacing: 7,
-          children: animals.entries
-              .map(
-                (a) => TextButton(
-                  onPressed: sending
-                      ? null
-                      : () => command('submitMove', {
-                          'actionId': newId(),
-                          'move': {'animal': a.key},
-                        }),
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFFEAE2D2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(7),
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 9,
+              childAspectRatio: .95,
+              children: animals.entries
+                  .map(
+                    (a) => AnimalChoice(
+                      animal: a.key,
+                      label: a.value,
+                      onTap: sending
+                          ? null
+                          : () => command('submitMove', {
+                              'actionId': newId(),
+                              'move': {'animal': a.key},
+                            }),
                     ),
-                    padding: const EdgeInsets.all(4),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Image.asset(
-                          'assets/art/${a.key}.png',
-                          cacheWidth: 100,
-                        ),
-                      ),
-                      FittedBox(
-                        child: Text(
-                          a.value,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.muted,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
+                  )
+                  .toList(),
+            ),
+          ),
         ),
       ] else
         GameNote(
