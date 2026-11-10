@@ -57,102 +57,144 @@ void main() {
       oldCells = level.rows * level.columns;
     }
   });
-  group('Matching training', () {
+  group('Matching levels', () {
+    test('board grows from 3 to 12 pairs with 1.5 moves per card', () {
+      var pairs = 0;
+      for (var n = 1; n <= levelCount; n++) {
+        final level = MatchingLevel(n);
+        expect(level.pairs, greaterThanOrEqualTo(pairs));
+        expect(level.moves, level.cards * 3 ~/ 2);
+        expect(level.columns * level.rows, level.cards);
+        pairs = level.pairs;
+      }
+      expect(MatchingLevel(1).pairs, 3);
+      expect(MatchingLevel(13).cards, 16);
+      expect(MatchingLevel(13).moves, 24);
+      expect(MatchingLevel(30).pairs, 12);
+    });
     test('duplicates are ignored and mismatch locks input for 900 ms', () {
-      final game = MatchingGame(seed: 7), different = MatchingGame(seed: 7);
+      final game = MatchingGame(level: 13, seed: 7),
+          different = MatchingGame(level: 13, seed: 7);
       expect(game.board, different.board);
+      expect(game.board.length, 16);
       final other = game.board.indexWhere((a) => a != game.board[0]);
       expect(game.select(0, 1000), true);
       expect(game.select(0, 1100), false);
       expect(game.attempts, 0);
       game.select(other, 1200);
       expect(game.attempts, 1);
+      expect(game.movesLeft, 23);
       expect(game.phase, GamePhase.feedback);
       expect(game.select(5, 1250), false);
       expect(game.tick(2099), false);
       expect(game.tick(2100), true);
       expect(game.opened, isEmpty);
     });
-    test(
-      'eight matches finish, remain open and restore without regenerating',
-      () {
-        final game = MatchingGame(seed: 12);
-        var now = 1000;
-        for (final animal in game.board.toSet()) {
-          final indexes = [
-            for (var i = 0; i < 16; i++)
-              if (game.board[i] == animal) i,
-          ];
-          game.select(indexes[0], now);
-          game.select(indexes[1], now + 5);
-          now += 700;
-          game.tick(now);
-        }
-        expect(game.phase, GamePhase.complete);
-        expect(game.matched.length, 16);
-        expect(game.attempts, 8);
-        final restored = MatchingGame.restore(game.toJson(now), now + 99999);
-        expect(restored.board, game.board);
-        expect(restored.id, game.id);
-        expect(restored.matched, game.matched);
-      },
-    );
-    test('a saved mismatch resumes with the remaining reveal time', () {
-      final game = MatchingGame(seed: 2);
-      final other = game.board.indexWhere((a) => a != game.board[0]);
-      game.select(0, 1000);
-      game.select(other, 1100);
-      final saved = game.toJson(1500),
-          restored = MatchingGame.restore(saved, 100000);
-      expect(restored.tick(100499), false);
-      expect(restored.tick(100500), true);
+    test('a perfect board finishes with three stars and restores intact', () {
+      final game = MatchingGame(level: 13, seed: 12);
+      var now = 1000;
+      for (final animal in game.board.toSet()) {
+        final indexes = [
+          for (var i = 0; i < game.board.length; i++)
+            if (game.board[i] == animal) i,
+        ];
+        game.select(indexes[0], now);
+        game.select(indexes[1], now + 5);
+        now += 700;
+        game.tick(now);
+      }
+      expect(game.phase, GamePhase.complete);
+      expect(game.attempts, 8);
+      expect(game.stars, 3);
+      final restored = MatchingGame.restore(game.toJson(now), now + 99999);
+      expect(restored.board, game.board);
+      expect(restored.level, 13);
+      expect(restored.matched, game.matched);
+    });
+    test('running out of moves fails the level', () {
+      final game = MatchingGame(level: 1, seed: 3);
+      expect(game.spec.moves, 9);
+      final a = game.board[0];
+      final other = game.board.indexWhere((x) => x != a);
+      var now = 0;
+      for (var i = 0; i < 9; i++) {
+        game.select(0, now);
+        game.select(other, now + 1);
+        now += 1000;
+        game.tick(now);
+      }
+      expect(game.phase, GamePhase.failed);
+      expect(game.select(1, now), false);
+    });
+    test('an old 16-card session without a level is rejected', () {
+      final old = MatchingGame(level: 13, seed: 1).toJson(0)..remove('level');
+      expect(() => MatchingGame.restore(old, 0), throwsFormatException);
     });
   });
-  group('Sequence', () {
-    test('preview ends, one error ends only that round, next round grows', () {
-      final game = SequenceGame(seed: 10);
+  group('Sequence levels', () {
+    test('cards grow from 3 to 12 and study time per card shrinks', () {
+      var count = 0;
+      for (var n = 1; n <= levelCount; n++) {
+        final level = SequenceLevel(n);
+        expect(level.count, greaterThanOrEqualTo(count));
+        expect(level.columns * level.rows, greaterThanOrEqualTo(level.count));
+        count = level.count;
+      }
+      expect(SequenceLevel(1).count, 3);
+      expect(SequenceLevel(30).count, 12);
+      expect(SequenceLevel(3).previewMs, lessThan(SequenceLevel(1).previewMs));
+    });
+    test('a wrong animal fails the level', () {
+      final game = SequenceGame(level: 10, seed: 10);
       game.start(1000);
       expect(game.phase, GamePhase.preview);
-      game.tick(7000);
+      game.tick(1000 + game.spec.previewMs);
       expect(game.phase, GamePhase.playing);
-      game.answer(game.pattern[0], 7100);
+      game.answer(game.pattern[0], 20000);
       final wrong = animals.keys.firstWhere((a) => a != game.pattern[1]);
-      game.answer(wrong, 7200);
-      expect(game.phase, GamePhase.roundOver);
-      expect(game.total, 1);
-      expect(game.answer(game.pattern[1], 7300), false);
-      game.next();
-      expect(game.round, 1);
-      expect(game.pattern.length, 9);
+      game.answer(wrong, 20100);
+      expect(game.phase, GamePhase.failed);
+      expect(game.wrong, true);
+      expect(game.answer(game.pattern[1], 20200), false);
     });
-    test('suspension does not consume preview or answer time', () {
-      final game = SequenceGame(seed: 3);
+    test('the answer clock running out fails the level', () {
+      final game = SequenceGame(level: 1, seed: 3);
+      game.start(0);
+      game.tick(game.spec.previewMs);
+      game.tick(game.spec.previewMs + game.spec.answerMs);
+      expect(game.phase, GamePhase.failed);
+      expect(game.timedOut, true);
+    });
+    test('suspension does not consume preview time', () {
+      final game = SequenceGame(level: 4, seed: 3);
       game.start(1000);
       game.pause(2000);
       final restored = SequenceGame.restore(game.toJson(2000), 900000);
       expect(restored.phase, GamePhase.preview);
-      expect(restored.deadline, 905000);
-      restored.tick(905000);
-      expect(restored.phase, GamePhase.playing);
-      restored.tick(935000);
-      expect(restored.phase, GamePhase.roundOver);
+      expect(restored.deadline, 900000 + game.spec.previewMs - 1000);
+      expect(restored.pattern, game.pattern);
     });
-    test('three perfect rounds record 27 answers and finish', () {
-      final game = SequenceGame(seed: 20);
-      var now = 0;
-      for (var round = 0; round < 3; round++) {
-        game.start(now);
-        now += SequenceGame.previewSeconds[round] * 1000;
-        game.tick(now);
-        for (final animal in game.pattern) {
-          game.answer(animal, ++now);
-        }
-        expect(game.phase, GamePhase.roundOver);
-        game.next();
+    test('a perfect level completes; stars fall with earlier failures', () {
+      final game = SequenceGame(level: 30, seed: 20, fails: 1);
+      game.start(0);
+      game.tick(game.spec.previewMs);
+      var now = game.spec.previewMs;
+      for (final animal in game.pattern) {
+        game.answer(animal, ++now);
       }
       expect(game.phase, GamePhase.complete);
-      expect(game.total, 27);
+      expect(game.answered, 12);
+      expect(game.stars, 2);
     });
+  });
+  test('level stars keep the best digit and merge per level', () {
+    var stars = LevelStars.clean('');
+    expect(stars.length, levelCount);
+    stars = LevelStars.raise(stars, 2, 3);
+    stars = LevelStars.raise(stars, 2, 1);
+    expect(LevelStars.of(stars, 2), 3);
+    expect(LevelStars.merge(stars, '12'), '13${'0' * 28}');
+    expect(LevelStars.total('321x'), 6);
   });
   test(
     'path rejects skipped rows, locks after one error and keeps the route',
@@ -162,6 +204,7 @@ void main() {
       game.tick(7800);
       expect(game.step(1, 0), isNull);
       expect(game.step(0, (game.level.route[0] + 1) % 3), false);
+      expect(game.fails, 1);
       expect(game.step(0, game.level.route[0]), isNull);
       final route = game.level.route;
       game.retry();
@@ -172,6 +215,7 @@ void main() {
         expect(game.step(r, route[r]), true);
       }
       expect(game.phase, GamePhase.complete);
+      expect(game.stars, 2);
     },
   );
 }

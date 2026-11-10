@@ -54,6 +54,20 @@ class Brand extends StatelessWidget {
   );
 }
 
+/// Bilge, the IQUM owl, without its tile (for medallions and the splash).
+class OwlMark extends StatelessWidget {
+  const OwlMark({super.key, this.size = 64});
+  final double size;
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    'assets/brand/owl.png',
+    width: size,
+    height: size,
+    cacheWidth: (size * 3).round(),
+    excludeFromSemantics: true,
+  );
+}
+
 /// A raised game piece: flat face, solid lip underneath, optional outline.
 class Piece extends StatelessWidget {
   const Piece({
@@ -552,105 +566,149 @@ class _Badge extends StatelessWidget {
   );
 }
 
-/// A stepping stone of the memory path. It sinks into its lip when pressed
-/// or stepped on; safe stones glow sage during preview.
+//// A face-down stepping stone of the memory path. Stepping on it turns it
+/// over like the cards in the other games: sage with a check when it is on
+/// the route, coral with a cross (and a shake) when it is not.
 class PathTile extends StatefulWidget {
   const PathTile({
     super.key,
     required this.row,
     required this.column,
-    this.lit = false,
     this.stepped = false,
     this.wrong = false,
-    this.current = false,
     this.active = false,
     this.onTap,
   });
   final int row, column;
-  final bool lit, stepped, wrong, current, active;
+  final bool stepped, wrong, active;
   final VoidCallback? onTap;
   @override
   State<PathTile> createState() => _PathTileState();
 }
 
-class _PathTileState extends State<PathTile> {
-  bool pressed = false;
-  void _press(bool value) {
-    if (widget.onTap != null && pressed != value) {
-      setState(() => pressed = value);
+class _PathTileState extends State<PathTile> with TickerProviderStateMixin {
+  bool get _open => widget.stepped || widget.wrong;
+  late final AnimationController _flip = AnimationController(
+    vsync: this,
+    duration: MotionTokens.flip,
+    value: _open ? 1 : 0,
+  );
+  late final AnimationController _fx = AnimationController(
+    vsync: this,
+    duration: MotionTokens.flip + MotionTokens.feedback,
+  );
+  bool get _reduced => MediaQuery.disableAnimationsOf(context);
+
+  @override
+  void didUpdateWidget(PathTile old) {
+    super.didUpdateWidget(old);
+    final wasOpen = old.stepped || old.wrong;
+    if (wasOpen != _open) {
+      if (_reduced) {
+        _flip.value = _open ? 1 : 0;
+      } else {
+        _flip.animateTo(_open ? 1 : 0, curve: Curves.easeInOutCubic);
+        if (_open) _fx.forward(from: 0);
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _flip.dispose();
+    _fx.dispose();
+    super.dispose();
+  }
+
+  Widget _face(bool front) {
+    final w = widget;
+    final (Color face, Color lip, Color edge) = !front
+        ? (
+            AppColors.petrolMid,
+            AppColors.dark,
+            w.active ? AppColors.gold : AppColors.dark,
+          )
+        : w.wrong
+        ? (AppColors.red, AppColors.redDeep, AppColors.redDeep)
+        : (AppColors.sage, AppColors.sageDeep, AppColors.sageDeep);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: face,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(color: edge, width: w.active && !front ? 3 : 2),
+        boxShadow: AppColors.lip(lip, 4),
+      ),
+      alignment: Alignment.center,
+      child: front
+          ? Icon(
+              w.wrong ? Icons.close_rounded : Icons.check_rounded,
+              size: 24,
+              color: w.wrong ? AppColors.paper : AppColors.dark,
+            )
+          // A plain felt stone with one small amber stud.
+          : Transform.rotate(
+              angle: math.pi / 4,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withValues(alpha: .55),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final w = widget;
-    final reduced = MediaQuery.disableAnimationsOf(context);
-    final (Color face, Color lip, Color edge) = w.wrong
-        ? (AppColors.red, AppColors.redDeep, AppColors.redDeep)
-        : w.stepped
-        ? (AppColors.sage, AppColors.sageDeep, AppColors.sageDeep)
-        : w.lit
-        ? (const Color(0xFFBFF0CF), AppColors.sageDeep, AppColors.sageDeep)
-        : (AppColors.paper, AppColors.shade, AppColors.dark);
-    const depth = 5.0;
-    final sink = w.stepped || w.wrong
-        ? depth - 1.5
-        : pressed
-        ? depth - 2
-        : 0.0;
     return Semantics(
       button: w.onTap != null,
       label:
-          '${w.row + 1}. sıra ${w.column + 1}. karo${w.stepped ? ', doğru adım' : ''}',
+          '${w.row + 1}. sıra ${w.column + 1}. karo'
+          '${w.stepped
+              ? ', doğru adım'
+              : w.wrong
+              ? ', yanlış adım'
+              : ''}',
       child: ExcludeSemantics(
-        child: StepFeedback(
-          wrong: w.wrong,
-          correct: w.stepped,
-          child: GestureDetector(
-            onTap: w.onTap,
-            onTapDown: (_) => _press(true),
-            onTapUp: (_) => _press(false),
-            onTapCancel: () => _press(false),
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: depth),
-              child: AnimatedContainer(
-                duration: reduced
-                    ? Duration.zero
-                    : const Duration(milliseconds: 140),
-                curve: Curves.easeOut,
-                transform: Matrix4.translationValues(0, sink, 0),
-                decoration: BoxDecoration(
-                  color: face,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: w.active && !w.stepped ? AppColors.gold : edge,
-                    width: w.active && !w.stepped ? 3 : 2,
-                  ),
-                  boxShadow: AppColors.lip(lip, depth - sink),
-                ),
-                child: Center(
-                  child: w.wrong
-                      ? const Icon(
-                          Icons.close_rounded,
-                          size: 24,
-                          color: AppColors.paper,
-                        )
-                      : w.stepped
-                      ? Icon(
-                          w.current ? Icons.pets_rounded : Icons.check_rounded,
-                          size: w.current ? 24 : 22,
-                          color: AppColors.dark,
-                        )
-                      : w.lit
-                      ? const Icon(
-                          Icons.pets_rounded,
-                          size: 20,
-                          color: AppColors.sageDeep,
-                        )
-                      : null,
-                ),
-              ),
-            ),
+        child: Bounceable(
+          scaleFactor: _reduced ? 1 : .93,
+          duration: const Duration(milliseconds: 90),
+          reverseDuration: const Duration(milliseconds: 200),
+          onTap: w.onTap,
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_flip, _fx]),
+            builder: (context, _) {
+              final t = _flip.value,
+                  front = t > .5,
+                  lift = math.sin(math.pi * t),
+                  angle = math.pi * (t - (front ? 1 : 0));
+              // Reaction after the flip lands: pop when right, shake when not.
+              final split =
+                  MotionTokens.flip.inMilliseconds /
+                  (_fx.duration!.inMilliseconds);
+              final f = ((_fx.value - split) / (1 - split)).clamp(0.0, 1.0);
+              var dx = 0.0, scale = 1 + .06 * lift;
+              if (_fx.isAnimating && f > 0) {
+                if (w.wrong) {
+                  dx = math.sin(f * math.pi * 6) * 5 * (1 - f);
+                } else {
+                  scale *= 1 + .1 * math.sin(math.pi * f);
+                }
+              }
+              return Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, .0022)
+                  ..translateByDouble(dx, -6 * lift, 0, 1)
+                  ..scaleByDouble(scale, scale, 1, 1)
+                  ..rotateY(angle),
+                child: _face(front),
+              );
+            },
           ),
         ),
       ),
@@ -658,7 +716,65 @@ class _PathTileState extends State<PathTile> {
   }
 }
 
-/// Chunky timer bar. Updates once per second with a short glide, never per
+/// A chunky star on its own lip (result screen, level stops).
+class ScoreStar extends StatelessWidget {
+  const ScoreStar({super.key, required this.filled, this.size = 40});
+  final bool filled;
+  final double size;
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: size,
+    height: size + size * .08,
+    child: Stack(
+      children: [
+        Positioned(
+          top: size * .08,
+          child: Icon(
+            Icons.star_rounded,
+            size: size,
+            color: filled ? AppColors.amberDeep : AppColors.line,
+          ),
+        ),
+        Icon(
+          Icons.star_rounded,
+          size: size,
+          color: filled ? AppColors.gold : AppColors.shade,
+        ),
+      ],
+    ),
+  );
+}
+
+/// One to three stars; empty slots stay as outlines.
+class StarRow extends StatelessWidget {
+  const StarRow(this.count, {super.key, this.size = 16, this.light = false});
+  final int count;
+  final double size;
+  final bool light;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '$count yıldız',
+    child: ExcludeSemantics(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          3,
+          (i) => Icon(
+            i < count ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: size,
+            color: i < count
+                ? AppColors.gold
+                : light
+                ? AppColors.goldLight.withValues(alpha: .5)
+                : AppColors.line,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// Chunky timer bar. Updates once per second with a short glide, never per
 /// frame; turns coral in the last quarter.
 class ClockStrip extends StatefulWidget {
   const ClockStrip({

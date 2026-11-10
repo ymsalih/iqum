@@ -11,6 +11,7 @@ import 'package:iqum/application/app_controller.dart';
 import 'package:iqum/data/backend.dart';
 import 'package:iqum/data/local_store.dart';
 import 'package:iqum/domain/models.dart';
+import 'package:iqum/ui/solo_screen.dart';
 
 /// Walks every main screen on phones from 320 dp to tablets, at normal and
 /// 1.3× text, with the real bundled fonts so measurements match devices.
@@ -48,6 +49,8 @@ const sizes = [
 void main() {
   late LocalStore store;
   late AppController controller;
+  // Game clocks follow this value, so timed phases can be stepped through.
+  var fakeNow = 1700000000000;
   final shots = Platform.environment['IQUM_SCREENSHOTS'];
   final boundary = GlobalKey();
   setUpAll(() async {
@@ -59,7 +62,7 @@ void main() {
       factory: databaseFactoryFfi,
       path: inMemoryDatabasePath,
     );
-    controller = AppController(store, OfflineBackend());
+    controller = AppController(store, OfflineBackend(), clock: () => fakeNow);
     await controller.restore();
     // No audio plugin in widget tests; haptics are harmless.
     await controller.settings(sound: false);
@@ -127,6 +130,15 @@ void main() {
             }
           }
 
+          Future<void> wait(Duration d) async {
+            fakeNow += d.inMilliseconds;
+            await tester.pump(d);
+          }
+
+          bool isTile(Widget w) => w.runtimeType.toString() == 'MemoryTile';
+          int tiles() =>
+              tester.widgetList<Widget>(find.byWidgetPredicate(isTile)).length;
+
           Future<void> back() async {
             tester.state<NavigatorState>(find.byType(Navigator).first).pop();
             await tester.pumpAndSettle();
@@ -137,6 +149,8 @@ void main() {
           await tester.tap(find.text('Leveller'));
           await check('levels');
           expect(find.byKey(const ValueKey('level-road-scroll')), findsOne);
+          await tester.tap(find.text('Eşleştirme'));
+          await check('levels-matching');
           await back();
 
           await tester.tap(find.text('Profil').last);
@@ -146,49 +160,70 @@ void main() {
           await tester.tap(find.text('Oyna').last);
           await tester.pumpAndSettle();
 
-          await tester.ensureVisible(find.text('Antrenman').first);
-          await tester.tap(find.text('Antrenman').first);
+          // Sequence Memory level 1 from its game card.
+          await tester.ensureVisible(find.text('Level 1').first);
+          await tester.tap(find.text('Level 1').first);
           await io();
           await check('sequence');
           await tester.tap(find.text('Kartları göster'));
           await io();
-          await tester.pump(const Duration(milliseconds: 500));
+          await wait(const Duration(milliseconds: 500));
           await check('sequence-preview');
-          await tester.pump(const Duration(seconds: 7));
+          await wait(Duration(milliseconds: SequenceLevel(1).previewMs));
           await check('sequence-answer');
           await back();
 
-          await tester.ensureVisible(find.text('Antrenman').last);
-          await tester.tap(find.text('Antrenman').last);
+          Future<void> open(GameKind kind, int level) async {
+            tester
+                .state<NavigatorState>(find.byType(Navigator).first)
+                .push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => SoloScreen(kind, level: level),
+                  ),
+                );
+            await io();
+            await tester.pumpAndSettle();
+          }
+
+          // The largest sequence (12 cards) while answering.
+          await open(GameKind.sequence, 30);
+          await tester.tap(find.text('Kartları göster'));
+          await io();
+          await wait(Duration(milliseconds: SequenceLevel(30).previewMs + 300));
+          await check('sequence-30-answer');
+          await back();
+
+          // Card Matching level 1 from its game card, then 16 and 24 cards.
+          await tester.ensureVisible(find.text('Level 1').last);
+          await tester.tap(find.text('Level 1').last);
           await io();
           await tester.pumpAndSettle();
-          final tiles = tester.widgetList<Widget>(
-            find.byWidgetPredicate(
-              (w) => w.runtimeType.toString() == 'MemoryTile',
-            ),
-          );
-          expect(tiles.length, 16);
-          await tester.tap(
-            find
-                .byWidgetPredicate(
-                  (w) => w.runtimeType.toString() == 'MemoryTile',
-                )
-                .first,
-          );
+          expect(tiles(), 6);
+          await tester.tap(find.byWidgetPredicate(isTile).first);
           await check('matching');
           await back();
+          for (final level in [13, 30]) {
+            await open(GameKind.matching, level);
+            expect(tiles(), MatchingLevel(level).cards);
+            await check('matching-$level');
+            await back();
+          }
 
           await tester.ensureVisible(find.text('Devam et'));
           await tester.tap(find.text('Devam et'));
           await io();
           await tester.pumpAndSettle();
-          await tester.tap(find.text('Yolu ezberle'));
+          await tester.tap(find.text('Yolu göster'));
           await io();
-          await tester.pump(const Duration(milliseconds: 400));
+          await wait(const Duration(milliseconds: 600));
           await check('path-preview');
-          await tester.pump(const Duration(seconds: 10));
+          await wait(Duration(milliseconds: LevelDefinition(1).previewMs));
           await check('path');
           expect(controller.progress.level, 1);
+          await back();
+          // The largest path board (8 rows × 5 columns).
+          await open(GameKind.path, 30);
+          await check('path-30');
           await back();
           await tester.pumpWidget(const SizedBox());
           await tester.pumpAndSettle();
@@ -196,11 +231,4 @@ void main() {
       );
     }
   }
-
-  test('level layouts used for board fitting stay in range', () {
-    for (var n = 1; n <= 30; n++) {
-      final l = LevelDefinition(n);
-      expect(l.columns * 1.45 / l.rows, inInclusiveRange(.5, 1.5));
-    }
-  });
 }

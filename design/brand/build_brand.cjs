@@ -8,7 +8,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const sharp = require('sharp');
 const opentype = require('opentype.js');
-const { C, markShapes, mark, appIcon, cardBack, svg } = require('./brand.cjs');
+const B = require('./brand.cjs');
+const { C, markShapes, mark, appIcon, cardBack, svg } = B;
 
 const root = path.join(__dirname, '..', '..');
 const at = (p) => { const full = path.join(root, p); fs.mkdirSync(path.dirname(full), { recursive: true }); return full; };
@@ -32,13 +33,14 @@ function logo(color = C.ink) {
 }
 
 function featureGraphic() {
-  const title = text(display, 'IQUM', 430, 218, 150, C.porcelain, 4);
-  const line1 = text(body, 'Kartları aç. Yolu hatırla.', 436, 290, 40, C.amberLight);
-  const line2 = text(body, 'Rakibine hafızanı göster.', 436, 340, 40, C.porcelain);
+  const title = text(display, 'IQUM', 440, 222, 150, C.porcelain, 4);
+  const line1 = text(body, 'Kartları aç. Yolu hatırla.', 446, 292, 40, C.amberLight);
+  const line2 = text(body, 'Rakibine hafızanı göster.', 446, 342, 40, C.porcelain);
   return svg(1024, 500, `
   <defs><radialGradient id="g" cx="30%" cy="35%" r="85%"><stop offset="0" stop-color="${C.petrolMid}"/><stop offset="1" stop-color="${C.petrolDeep}"/></radialGradient></defs>
   <rect width="1024" height="500" fill="url(#g)"/>
-  <g transform="translate(36 66) scale(3.0)">${markShapes()}</g>
+  <circle cx="225" cy="262" r="190" fill="#FFFFFF" fill-opacity=".05"/>
+  <g transform="translate(225 255) scale(4.1) translate(-50 -54)">${B.qGem()}</g>
   ${title.svg}${line1.svg}${line2.svg}`, 'IQUM tanıtım grafiği');
 }
 
@@ -62,12 +64,33 @@ function featureGraphic() {
     return img.png({ compressionLevel: 9 }).toFile(at(file));
   };
   await png(mark(), [256, 256], 'assets/brand/mark.png');
+  await png(B.splashMark(), [288, 288], 'assets/brand/owl.png');
   await png(cardBack(), [300, 360], 'assets/brand/card-back.png', true);
   await png(appIcon(), [1024, 1024], 'assets/brand/app-icon.png', true);
   fs.rmSync(path.join(root, 'assets/brand/mark-light.png'), { force: true });
 
-  for (const [density, size] of Object.entries({ mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 })) {
-    await png(appIcon(), [size, size], `android/app/src/main/res/mipmap-${density}/ic_launcher.png`, true);
+  // Android: legacy square icon (API < 26) plus adaptive layers (API 26+),
+  // so launchers mask a full-bleed icon instead of shrinking it into a plate.
+  const res = 'android/app/src/main/res';
+  for (const [density, scale] of Object.entries({ mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 })) {
+    await png(B.legacyIcon(), [48 * scale, 48 * scale], `${res}/mipmap-${density}/ic_launcher.png`);
+    for (const [name, source] of [['ic_launcher_background', B.adaptiveBackground()], ['ic_launcher_foreground', B.adaptiveForeground()], ['ic_launcher_monochrome', B.adaptiveMonochrome()]]) {
+      await png(source, [108 * scale, 108 * scale], `${res}/mipmap-${density}/${name}.png`, name === 'ic_launcher_background');
+    }
+    await png(B.splashMark(), [120 * scale, 120 * scale], `${res}/drawable-${density}/splash_mark.png`);
+  }
+  const adaptive = `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
+</adaptive-icon>
+`;
+  fs.writeFileSync(at(`${res}/mipmap-anydpi-v26/ic_launcher.xml`), adaptive);
+  // iOS launch image (centred on petrol by LaunchScreen.storyboard).
+  const launch = 'ios/Runner/Assets.xcassets/LaunchImage.imageset';
+  for (const [suffix, scale] of [['', 1], ['@2x', 2], ['@3x', 3]]) {
+    await png(B.splashMark(), [120 * scale, 120 * scale], `${launch}/LaunchImage${suffix}.png`);
   }
   const iconSet = 'ios/Runner/Assets.xcassets/AppIcon.appiconset';
   for (const icon of JSON.parse(fs.readFileSync(path.join(root, iconSet, 'Contents.json'))).images) {
@@ -78,5 +101,5 @@ function featureGraphic() {
   await png(appIcon(), [512, 512], 'store_assets/google-play-icon.png', true);
   await png(appIcon(), [1024, 1024], 'store_assets/app-store-icon.png', true);
   await png(featureGraphic(), [1024, 500], 'store_assets/google-play-feature-graphic.png', true);
-  console.log('Brand: mark, card back, app/launcher/iOS/store icons and feature graphic regenerated.');
+  console.log('Brand: mark, owl, card back, app/adaptive/iOS/store icons, splash images and feature graphic regenerated.');
 })().catch((e) => { console.error(e); process.exitCode = 1; });

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'premium_motion.dart';
 import 'level_road.dart';
 import 'dart:async';
@@ -114,14 +115,14 @@ class HomeView extends ConsumerWidget {
         title: 'Sıra Hafızası',
         caption: 'Gördüğünü sırayla hatırla.',
         art: 'kus',
-        record: p.sequenceBest == 0 ? null : '${p.sequenceBest}/27',
+        progress: p,
       ),
       _GameRow(
         kind: GameKind.matching,
         title: 'Kart Eşleştirme',
-        caption: 'Bir kart aç. Eşi aklında mı?',
+        caption: 'Az hamlede bütün eşleri bul.',
         art: 'kelebek',
-        record: p.matchingBestMs == null ? null : clockText(p.matchingBestMs!),
+        progress: p,
       ),
     ];
     return SingleChildScrollView(
@@ -189,7 +190,7 @@ class HomeView extends ConsumerWidget {
           Text('Biraz odak.\nBir adım ileri.', style: AppColors.display(32)),
           const SizedBox(height: 6),
           const Text(
-            'Üç oyun. Her seferinde yeni bir hatırlama.',
+            'Üç oyun, doksan level. Her biri yeni bir hatırlama.',
             style: AppColors.caption,
           ),
           const SizedBox(height: 18),
@@ -203,7 +204,7 @@ class HomeView extends ConsumerWidget {
                   context,
                   MaterialPageRoute<void>(builder: (_) => const LevelsScreen()),
                 ),
-                icon: const Icon(Icons.map_rounded, size: 18),
+                icon: const Icon(Icons.route_rounded, size: 18),
                 label: const Text('Leveller'),
               ),
             ],
@@ -276,7 +277,8 @@ class _PathHero extends StatelessWidget {
                   HeartRow(lives, size: 16),
                   const SizedBox(height: 2),
                   Text(
-                    '$lives / 4 canın hazır',
+                    '$lives / 4 can · '
+                    '${progress.totalStars(GameKind.path)} yıldız',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: AppColors.caption.copyWith(
@@ -368,11 +370,13 @@ class _GameRow extends StatelessWidget {
     required this.title,
     required this.caption,
     required this.art,
-    this.record,
+    required this.progress,
   });
   final GameKind kind;
   final String title, caption, art;
-  final String? record;
+  final PlayerProgress progress;
+  String? get record =>
+      progress.totalStars(kind) == 0 ? null : '${progress.totalStars(kind)}';
   @override
   Widget build(BuildContext context) => Piece(
     border: AppColors.line,
@@ -385,17 +389,35 @@ class _GameRow extends StatelessWidget {
         Row(
           children: [
             Expanded(
+              flex: 5,
               child: _SmallKey(
-                label: 'Antrenman',
+                label: 'Level ${progress.unlocked(kind)}',
                 icon: Icons.play_arrow_rounded,
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute<void>(builder: (_) => SoloScreen(kind)),
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        SoloScreen(kind, level: progress.unlocked(kind)),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _SmallKey(
+              label: '',
+              tooltip: 'Leveller',
+              icon: Icons.route_rounded,
+              secondary: true,
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => LevelsScreen(initial: kind),
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
+              flex: 4,
               child: _SmallKey(
                 label: 'Düello',
                 icon: Icons.style_rounded,
@@ -493,8 +515,8 @@ class _GameRow extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.emoji_events_rounded,
-                          size: 13,
+                          Icons.star_rounded,
+                          size: 14,
                           color: AppColors.amberDeep,
                         ),
                         const SizedBox(width: 3),
@@ -511,6 +533,14 @@ class _GameRow extends StatelessWidget {
               ],
             ),
             Text(caption, style: AppColors.caption),
+            const SizedBox(height: 4),
+            Text(
+              '${progress.cleared(kind)}/$levelCount level geçildi',
+              style: AppColors.eyebrow.copyWith(
+                color: AppColors.green,
+                letterSpacing: .2,
+              ),
+            ),
           ],
         ),
       ),
@@ -525,13 +555,22 @@ class _SmallKey extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.secondary = false,
+    this.tooltip,
   });
   final String label;
   final VoidCallback onPressed;
   final IconData? icon;
   final bool secondary;
+  final String? tooltip;
   @override
-  Widget build(BuildContext context) => SpringPress(
+  Widget build(BuildContext context) => tooltip == null
+      ? _key()
+      : Tooltip(
+          message: tooltip,
+          child: Semantics(label: tooltip, child: _key()),
+        );
+
+  Widget _key() => SpringPress(
     enabled: true,
     sink: 2,
     child: DecoratedBox(
@@ -560,11 +599,10 @@ class _SmallKey extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[
-              Icon(icon, size: 18),
-              const SizedBox(width: 4),
-            ],
-            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+            if (icon != null) Icon(icon, size: 18),
+            if (icon != null && label.isNotEmpty) const SizedBox(width: 4),
+            if (label.isNotEmpty)
+              Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
           ],
         ),
       ),
@@ -572,13 +610,29 @@ class _SmallKey extends StatelessWidget {
   );
 }
 
-class LevelsScreen extends ConsumerWidget {
-  const LevelsScreen({super.key});
+/// Level map of every solo game: pick a game, see cleared levels with their
+/// stars on the road, replay any open level or continue with the next one.
+class LevelsScreen extends ConsumerStatefulWidget {
+  const LevelsScreen({super.key, this.initial = GameKind.path});
+  final GameKind initial;
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LevelsScreen> createState() => _LevelsScreenState();
+}
+
+class _LevelsScreenState extends ConsumerState<LevelsScreen> {
+  late GameKind game = widget.initial;
+  void _play(int level) => Navigator.push(
+    context,
+    MaterialPageRoute<void>(builder: (_) => SoloScreen(game, level: level)),
+  );
+
+  @override
+  Widget build(BuildContext context) {
     final app = ref.watch(appProvider), p = app.progress;
+    final cleared = p.cleared(game), stars = p.totalStars(game);
+    final next = p.unlocked(game);
     return GameScaffold(
-      label: 'Hafıza Yolu',
+      label: 'Leveller',
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           Responsive.gutter(context),
@@ -589,22 +643,42 @@ class LevelsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _GameTabs(value: game, onChanged: (g) => setState(() => game = g)),
+            const SizedBox(height: 12),
             Row(
               children: [
-                HeartRow(p.life.at(app.now).count, size: 20),
-                const SizedBox(width: 12),
+                HeartRow(p.life.at(app.now).count, size: 18),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    '${p.completedLevels}/30 tamamlandı',
-                    textAlign: TextAlign.right,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppColors.body.copyWith(fontSize: 13),
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 10,
+                    children: [
+                      Text(
+                        '$cleared/$levelCount level',
+                        style: AppColors.body.copyWith(fontSize: 13),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: AppColors.gold,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '$stars/${levelCount * 3}',
+                            style: AppColors.body.copyWith(fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Container(
               height: 12,
               padding: const EdgeInsets.all(2),
@@ -614,7 +688,7 @@ class LevelsScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: FractionallySizedBox(
-                widthFactor: (p.completedLevels / 30).clamp(0.0, 1.0),
+                widthFactor: (cleared / levelCount).clamp(0.0, 1.0),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: AppColors.gold,
@@ -623,35 +697,100 @@ class LevelsScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Expanded(
               child: LevelRoad(
-                level: p.level,
-                onSelect: (n) => Navigator.push(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (_) => SoloScreen(GameKind.path, level: n),
-                  ),
-                ),
+                key: ValueKey(game),
+                level: next,
+                stars: (n) => p.starsOf(game, n),
+                onSelect: _play,
               ),
             ),
             const SizedBox(height: 16),
             IqumButton(
-              'Level ${p.level} ile devam et',
+              'Level $next ile devam et',
               accent: true,
               icon: Icons.play_arrow_rounded,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => SoloScreen(GameKind.path, level: p.level),
-                ),
-              ),
+              onPressed: () => _play(next),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+/// Three-way chunky toggle between the solo games.
+class _GameTabs extends StatelessWidget {
+  const _GameTabs({required this.value, required this.onChanged});
+  final GameKind value;
+  final ValueChanged<GameKind> onChanged;
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(4),
+    decoration: BoxDecoration(
+      color: AppColors.shade,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Row(
+      children: [
+        for (final (k, label, icon) in [
+          (GameKind.path, 'Yol', Icons.route_rounded),
+          (GameKind.sequence, 'Sıra', Icons.format_list_numbered_rounded),
+          (GameKind.matching, 'Eşleştirme', Icons.style_rounded),
+        ])
+          Expanded(
+            child: Semantics(
+              selected: value == k,
+              button: true,
+              label: gameTitles[k],
+              child: ExcludeSemantics(
+                child: GestureDetector(
+                  onTap: () => onChanged(k),
+                  child: AnimatedContainer(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    margin: EdgeInsets.only(bottom: value == k ? 3 : 0),
+                    decoration: BoxDecoration(
+                      color: value == k ? AppColors.paper : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: value == k
+                          ? AppColors.lip(const Color(0xFFCDBFA6), 3)
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          icon,
+                          size: 17,
+                          color: value == k ? AppColors.green : AppColors.muted,
+                        ),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            label,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppColors.body.copyWith(
+                              fontSize: 13,
+                              color: value == k
+                                  ? AppColors.text
+                                  : AppColors.muted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 Future<bool> ensureAccount(BuildContext context, WidgetRef ref) async {
@@ -706,7 +845,7 @@ class AccountView extends ConsumerWidget {
                 boxShadow: AppColors.lip(AppColors.dark, 6),
               ),
               child: account == null
-                  ? const Brand(size: 70, wordmark: false)
+                  ? const OwlMark(size: 92)
                   : Text(
                       account.name.characters.first.toUpperCase(),
                       style: AppColors.display(
@@ -779,7 +918,11 @@ class AccountView extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _Stat(p.level, 'Ulaştığın level', Icons.map_rounded),
+                  child: _Stat(
+                    GameKind.values.fold(0, (a, g) => a + p.totalStars(g)),
+                    'Toplam yıldız',
+                    Icons.star_rounded,
+                  ),
                 ),
               ],
             ),
@@ -820,23 +963,7 @@ class AccountView extends ConsumerWidget {
               ),
           ],
           const SizedBox(height: 22),
-          _Section(
-            title: 'Kişisel rekorlar',
-            children: [
-              _SettingText(
-                'Sıra Hafızası',
-                '${p.sequenceBest} / 27',
-                Icons.format_list_numbered_rounded,
-              ),
-              _SettingText(
-                'Kart Eşleştirme',
-                p.matchingBestMs == null
-                    ? 'Henüz oynanmadı'
-                    : clockText(p.matchingBestMs!),
-                Icons.style_rounded,
-              ),
-            ],
-          ),
+          _Statistics(progress: p, signedIn: account != null),
           const SizedBox(height: 16),
           _Section(
             title: 'Oyun ayarları',
@@ -963,24 +1090,222 @@ class _Stat extends StatelessWidget {
   );
 }
 
-class _SettingText extends StatelessWidget {
-  const _SettingText(this.label, this.value, this.icon);
-  final String label, value;
-  final IconData icon;
+String _duration(int ms) {
+  final minutes = ms ~/ 60000;
+  if (minutes < 60) return '$minutes dk';
+  return '${minutes ~/ 60} sa ${minutes % 60} dk';
+}
+
+/// Profile statistics: totals, then one card per game and the duel record.
+class _Statistics extends StatelessWidget {
+  const _Statistics({required this.progress, required this.signedIn});
+  final PlayerProgress progress;
+  final bool signedIn;
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-    child: Row(
+  Widget build(BuildContext context) {
+    final p = progress;
+    int sum(int Function(GameKind) f) =>
+        GameKind.values.fold(0, (a, g) => a + f(g));
+    final duelLost = math.max(0, p.duelPlayed - p.duelWon - p.duelDrawn);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Icon(icon, color: AppColors.petrol, size: 22),
-        const SizedBox(width: 14),
-        Expanded(child: Text(label, style: AppColors.body)),
-        const SizedBox(width: 12),
-        Flexible(
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text('İstatistikler', style: AppColors.title(17)),
+        ),
+        Piece(
+          color: AppColors.petrol,
+          lip: AppColors.dark,
+          border: AppColors.dark,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          child: Row(
+            children: [
+              _Metric(
+                '${sum(p.cleared)}/${levelCount * 3}',
+                'Geçilen level',
+                light: true,
+              ),
+              _Metric('${sum(p.totalStars)}', 'Yıldız', light: true),
+              _Metric(
+                '${sum((g) => p.statsOf(g).played)}',
+                'Deneme',
+                light: true,
+              ),
+              _Metric(
+                _duration(sum((g) => p.statsOf(g).timeMs)),
+                'Oyun süresi',
+                light: true,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        for (final (game, icon, extra) in [
+          (GameKind.path, Icons.route_rounded, null),
+          (
+            GameKind.sequence,
+            Icons.format_list_numbered_rounded,
+            p.sequenceBest == 0 ? null : 'En uzun dizi: ${p.sequenceBest} kart',
+          ),
+          (
+            GameKind.matching,
+            Icons.style_rounded,
+            p.matchingBestMs == null
+                ? null
+                : '16 kartta rekor: ${clockText(p.matchingBestMs!)}'
+                      '${p.matchingBestAttempts == null ? '' : ' · ${p.matchingBestAttempts} hamle'}',
+          ),
+        ]) ...[
+          _GameStats(progress: p, game: game, icon: icon, extra: extra),
+          const SizedBox(height: 10),
+        ],
+        Piece(
+          border: AppColors.line,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.sports_kabaddi_rounded,
+                    size: 20,
+                    color: AppColors.amberDeep,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Düello', style: AppColors.title(16))),
+                  if (p.duelPlayed > 0)
+                    Text(
+                      '%${(p.duelWon * 100 / p.duelPlayed).round()} galibiyet',
+                      style: AppColors.eyebrow.copyWith(color: AppColors.green),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (!signedIn)
+                const Text(
+                  'Düello sonuçları hesabında tutulur. Giriş yapınca burada görünür.',
+                  style: AppColors.caption,
+                )
+              else
+                Row(
+                  children: [
+                    _Metric('${p.duelPlayed}', 'Oynanan'),
+                    _Metric('${p.duelWon}', 'Kazanılan'),
+                    _Metric('${p.duelDrawn}', 'Berabere'),
+                    _Metric('$duelLost', 'Kaybedilen'),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GameStats extends StatelessWidget {
+  const _GameStats({
+    required this.progress,
+    required this.game,
+    required this.icon,
+    this.extra,
+  });
+  final PlayerProgress progress;
+  final GameKind game;
+  final IconData icon;
+  final String? extra;
+  @override
+  Widget build(BuildContext context) {
+    final p = progress, stats = p.statsOf(game);
+    return Piece(
+      border: AppColors.line,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.petrol),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(gameTitles[game]!, style: AppColors.title(16)),
+              ),
+              const Icon(Icons.star_rounded, size: 16, color: AppColors.gold),
+              const SizedBox(width: 2),
+              Text(
+                '${p.totalStars(game)}/${levelCount * 3}',
+                style: AppColors.body.copyWith(fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: p.cleared(game) / levelCount,
+              minHeight: 7,
+              color: AppColors.gold,
+              backgroundColor: AppColors.shade,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _Metric('${p.cleared(game)}/$levelCount', 'Level'),
+              _Metric('${stats.played}', 'Deneme'),
+              _Metric(
+                stats.played == 0 ? '–' : '%${stats.successRate}',
+                'Başarı',
+              ),
+              _Metric('${stats.perfect}', 'Hatasız'),
+            ],
+          ),
+          if (extra != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(
+                  Icons.emoji_events_rounded,
+                  size: 15,
+                  color: AppColors.amberDeep,
+                ),
+                const SizedBox(width: 5),
+                Expanded(child: Text(extra!, style: AppColors.caption)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  const _Metric(this.value, this.label, {this.light = false});
+  final String value, label;
+  final bool light;
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
           child: Text(
             value,
-            textAlign: TextAlign.right,
-            style: AppColors.title(16),
+            style: AppColors.display(
+              20,
+            ).copyWith(color: light ? AppColors.paper : AppColors.text),
+          ),
+        ),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          style: AppColors.caption.copyWith(
+            fontSize: 11,
+            color: light ? AppColors.goldLight : AppColors.muted,
           ),
         ),
       ],

@@ -82,7 +82,9 @@ const importProgress=callable(async ({uid},data)=>{
     const recordId=id(record.id);
     if(!['matching','sequence','path'].includes(record.game)||!record.data||typeof record.data!=='object')throw new GameError('invalid-argument','Oyun kaydı geçersiz.');
     const details=record.data;
-    const normalized=record.game==='path'?{level:Math.max(1,Math.min(30,Math.floor(Number(details.level)||1)))}:record.game==='sequence'?{correct:Math.max(0,Math.min(27,Math.floor(Number(details.correct)||0))),elapsedMs:Math.max(0,Math.floor(Number(details.elapsedMs)||0))}:{attempts:Math.max(8,Math.floor(Number(details.attempts)||8)),elapsedMs:Math.max(0,Math.floor(Number(details.elapsedMs)||0))};
+    const whole=(value,min,max,fallback=min)=>Math.max(min,Math.min(max,Math.floor(Number(value)||fallback)));
+    const level=whole(details.level,1,30),stars=whole(details.stars,1,3);
+    const normalized=record.game==='path'?{level,stars}:record.game==='sequence'?{level,stars,correct:whole(details.correct,0,27,0),elapsedMs:whole(details.elapsedMs,0,864e5,0)}:{level,stars,pairs:whole(details.pairs,3,12,8),attempts:whole(details.attempts,3,999,3),elapsedMs:whole(details.elapsedMs,0,864e5,0)};
     return {id:recordId,game:record.game,finishedAt:Math.min(Date.now(),Math.max(0,Math.floor(Number(record.finishedAt)||0))),data:normalized};
   });
   if(new Set(clean.map(r=>r.id)).size!==clean.length)throw new GameError('invalid-argument','Kayıt paketi aynı oyunu yineliyor.');

@@ -1,12 +1,25 @@
 import 'dart:math';
 import 'models.dart';
 
+/// Stars for a cleared level by the failed attempts before it (3, 2, 1).
+int starsAfter(int fails) => max(1, 3 - fails);
+
+/// One Card Matching level. A move is one pair turned over; when the moves
+/// run out before every pair is found the level is failed.
 class MatchingGame {
-  MatchingGame({int? seed}) : id = newId() {
-    final selected = animals.keys.take(8).toList();
-    board = [...selected, ...selected]..shuffle(Random(seed));
+  MatchingGame({this.level = 1, int? seed, this.fails = 0})
+    : id = newId(),
+      spec = MatchingLevel(level) {
+    final rng = Random(seed);
+    final selected = (animals.keys.toList()..shuffle(rng))
+        .take(spec.pairs)
+        .toList();
+    board = [...selected, ...selected]..shuffle(rng);
   }
   late String id;
+  final int level;
+  final MatchingLevel spec;
+  int fails;
   late List<String> board;
   final Set<int> matched = {};
   final List<int> opened = [];
@@ -14,11 +27,14 @@ class MatchingGame {
   int attempts = 0, elapsedMs = 0;
   int? feedbackUntil, lastTick;
   bool lastMatched = false;
+  int get movesLeft => max(0, spec.moves - attempts);
+  int get stars => spec.starsFor(attempts);
+
   bool select(int index, int now) {
     tick(now);
     if (phase != GamePhase.playing ||
         index < 0 ||
-        index >= 16 ||
+        index >= board.length ||
         matched.contains(index) ||
         opened.contains(index)) {
       return false;
@@ -36,15 +52,20 @@ class MatchingGame {
   }
 
   bool tick(int now) {
-    if (lastTick != null && phase != GamePhase.complete) {
+    final running = phase != GamePhase.complete && phase != GamePhase.failed;
+    if (lastTick != null && running) {
       elapsedMs += max(0, now - lastTick!);
     }
     if (lastTick != null) lastTick = now;
     if (phase == GamePhase.feedback && now >= feedbackUntil!) {
       opened.clear();
       feedbackUntil = null;
-      phase = matched.length == 16 ? GamePhase.complete : GamePhase.playing;
-      if (phase == GamePhase.complete) lastTick = null;
+      phase = matched.length == board.length
+          ? GamePhase.complete
+          : attempts >= spec.moves
+          ? GamePhase.failed
+          : GamePhase.playing;
+      if (phase != GamePhase.playing) lastTick = null;
       return true;
     }
     return false;
@@ -57,6 +78,8 @@ class MatchingGame {
 
   Map<String, dynamic> toJson(int now) => {
     'id': id,
+    'level': level,
+    'fails': fails,
     'board': board,
     'matched': matched.toList(),
     'opened': opened,
@@ -67,24 +90,29 @@ class MatchingGame {
     'lastMatched': lastMatched,
   };
   factory MatchingGame.restore(Map<String, dynamic> j, int now) {
-    final g = MatchingGame(), board = (j['board'] as List).cast<String>();
-    if (board.length != 16 ||
+    final g = MatchingGame(
+      level: intValue(j['level'], 1).clamp(1, levelCount),
+      fails: max(0, intValue(j['fails'])),
+    );
+    final board = (j['board'] as List).cast<String>();
+    if (board.length != g.spec.cards ||
         board.any((a) => !animals.containsKey(a)) ||
-        board.toSet().length != 8 ||
+        board.toSet().length != g.spec.pairs ||
         board.toSet().any((a) => board.where((b) => a == b).length != 2)) {
       throw const FormatException('Invalid board');
     }
+    final size = board.length;
     g.id = j['id'] as String;
     g.board = board;
     g.matched.addAll(
       (j['matched'] as List)
           .map((e) => intValue(e))
-          .where((i) => i >= 0 && i < 16),
+          .where((i) => i >= 0 && i < size),
     );
     g.opened.addAll(
       (j['opened'] as List)
           .map((e) => intValue(e))
-          .where((i) => i >= 0 && i < 16),
+          .where((i) => i >= 0 && i < size),
     );
     g.phase = GamePhase.values.byName(j['phase'] as String);
     g.attempts = intValue(j['attempts']);
@@ -97,29 +125,39 @@ class MatchingGame {
   }
 }
 
+/// One Sequence Memory level: study the cards, then name them in order.
+/// A wrong animal or the clock running out fails the level.
 class SequenceGame {
-  SequenceGame({int? seed})
+  SequenceGame({this.level = 1, int? seed, this.fails = 0})
     : id = newId(),
+      spec = SequenceLevel(level),
       seed = seed ?? Random.secure().nextInt(1 << 30);
   String id;
-  final int seed;
-  int round = 0, answered = 0, total = 0, elapsedMs = 0;
+  final int level, seed;
+  final SequenceLevel spec;
+  int fails;
+  int answered = 0, elapsedMs = 0;
   GamePhase phase = GamePhase.ready;
   int? deadline, lastTick;
-  bool wrong = false;
-  static const counts = [6, 9, 12],
-      previewSeconds = [6, 8, 10],
-      answerSeconds = [30, 45, 60];
-  List<String> get pattern =>
-      (animals.keys.toList()..shuffle(Random(seed + round)))
-          .take(counts[round])
-          .toList();
+  bool wrong = false, timedOut = false;
+  late final List<String> pattern = (animals.keys.toList()
+        ..shuffle(Random(seed)))
+      .take(spec.count)
+      .toList();
+  int get stars => starsAfter(fails);
+
   void start(int now) {
+    if (phase != GamePhase.ready) return;
     phase = GamePhase.preview;
     answered = 0;
-    wrong = false;
-    deadline = now + previewSeconds[round] * 1000;
+    deadline = now + spec.previewMs;
     lastTick = now;
+  }
+
+  void _end(GamePhase result) {
+    phase = result;
+    deadline = null;
+    lastTick = null;
   }
 
   bool tick(int now) {
@@ -130,14 +168,13 @@ class SequenceGame {
     if (deadline == null || now < deadline!) return false;
     if (phase == GamePhase.preview) {
       phase = GamePhase.playing;
-      deadline = now + answerSeconds[round] * 1000;
+      deadline = now + spec.answerMs;
       lastTick = now;
       return true;
     }
     if (phase == GamePhase.playing) {
-      phase = GamePhase.roundOver;
-      deadline = null;
-      lastTick = null;
+      timedOut = true;
+      _end(GamePhase.failed);
       return true;
     }
     return false;
@@ -148,31 +185,12 @@ class SequenceGame {
     if (phase != GamePhase.playing) return false;
     if (pattern[answered] != animal) {
       wrong = true;
-      phase = GamePhase.roundOver;
-      deadline = null;
-      lastTick = null;
+      _end(GamePhase.failed);
       return true;
     }
     answered++;
-    total++;
-    if (answered == counts[round]) {
-      phase = GamePhase.roundOver;
-      deadline = null;
-      lastTick = null;
-    }
+    if (answered == spec.count) _end(GamePhase.complete);
     return true;
-  }
-
-  void next() {
-    if (phase != GamePhase.roundOver) return;
-    if (round == 2) {
-      phase = GamePhase.complete;
-      return;
-    }
-    round++;
-    answered = 0;
-    phase = GamePhase.ready;
-    wrong = false;
   }
 
   void pause(int now) {
@@ -182,24 +200,29 @@ class SequenceGame {
 
   Map<String, dynamic> toJson(int now) => {
     'id': id,
+    'level': level,
+    'fails': fails,
     'seed': seed,
-    'round': round,
     'answered': answered,
-    'total': total,
     'elapsedMs': elapsedMs,
     'phase': phase.name,
     'remainingMs': deadline == null ? null : max(0, deadline! - now),
     'wrong': wrong,
+    'timedOut': timedOut,
   };
   factory SequenceGame.restore(Map<String, dynamic> j, int now) {
-    final g = SequenceGame(seed: intValue(j['seed']));
+    if (j['level'] == null) throw const FormatException('Old session');
+    final g = SequenceGame(
+      level: intValue(j['level'], 1).clamp(1, levelCount),
+      seed: intValue(j['seed']),
+      fails: max(0, intValue(j['fails'])),
+    );
     g.id = j['id'] as String;
-    g.round = intValue(j['round']).clamp(0, 2);
-    g.answered = intValue(j['answered']).clamp(0, counts[g.round]);
-    g.total = intValue(j['total']).clamp(0, 27);
+    g.answered = intValue(j['answered']).clamp(0, g.spec.count);
     g.elapsedMs = intValue(j['elapsedMs']);
     g.phase = GamePhase.values.byName(j['phase'] as String);
     g.wrong = j['wrong'] == true;
+    g.timedOut = j['timedOut'] == true;
     if (g.phase == GamePhase.preview || g.phase == GamePhase.playing) {
       g.deadline = now + intValue(j['remainingMs']);
       g.lastTick = now;
@@ -209,12 +232,15 @@ class SequenceGame {
 }
 
 class PathGame {
-  PathGame(int level) : level = LevelDefinition(level);
+  PathGame(int level, {this.fails = 0}) : level = LevelDefinition(level);
   final LevelDefinition level;
   String id = newId();
+  int fails;
   GamePhase phase = GamePhase.ready;
   int row = 0;
   int? deadline, wrongColumn;
+  int get stars => starsAfter(fails);
+
   void start(int now) {
     row = 0;
     wrongColumn = null;
@@ -241,6 +267,7 @@ class PathGame {
     if (level.route[row] != column) {
       phase = GamePhase.feedback;
       wrongColumn = column;
+      fails++;
       return false;
     }
     row++;
@@ -258,13 +285,17 @@ class PathGame {
   Map<String, dynamic> toJson(int now) => {
     'id': id,
     'level': level.number,
+    'fails': fails,
     'phase': phase.name,
     'row': row,
     'remainingMs': deadline == null ? null : max(0, deadline! - now),
     'wrongColumn': wrongColumn,
   };
   factory PathGame.restore(Map<String, dynamic> j, int now) {
-    final g = PathGame(intValue(j['level'], 1).clamp(1, 30));
+    final g = PathGame(
+      intValue(j['level'], 1).clamp(1, 30),
+      fails: max(0, intValue(j['fails'])),
+    );
     g.id = j['id'] as String;
     g.row = intValue(j['row']).clamp(0, g.level.rows);
     g.phase = GamePhase.values.byName(j['phase'] as String);

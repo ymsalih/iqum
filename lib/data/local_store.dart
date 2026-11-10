@@ -134,6 +134,15 @@ class LocalStore {
     String scope,
     PlayerProgress progress,
     Map<String, dynamic> session,
+  ) => saveProgressAndSession(scope, progress, GameKind.path, session);
+
+  /// Progress and a game session in one transaction (a failed level's heart
+  /// and the attempt it belongs to are saved together).
+  Future<void> saveProgressAndSession(
+    String scope,
+    PlayerProgress progress,
+    GameKind game,
+    Map<String, dynamic> session,
   ) async {
     await db.transaction((tx) async {
       await tx.insert('progress', {
@@ -142,7 +151,7 @@ class LocalStore {
       }, conflictAlgorithm: ConflictAlgorithm.replace);
       await tx.insert('sessions', {
         'scope': scope,
-        'game': 'path',
+        'game': game.name,
         'data': jsonEncode(session),
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     });

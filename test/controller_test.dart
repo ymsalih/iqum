@@ -336,4 +336,81 @@ void main() {
       expect(app.progress.sequenceBest, 0);
     },
   );
+  test(
+    'a cleared level unlocks the next, keeps best stars and counts',
+    () async {
+      Future<void> clear(GameKind game, int level, int stars) => app.complete(
+        RunRecord(
+          id: newId(),
+          game: game,
+          finishedAt: now,
+          data: {'level': level, 'stars': stars, 'elapsedMs': 4000},
+        ),
+      );
+      await clear(GameKind.sequence, 1, 3);
+      await clear(GameKind.sequence, 1, 1);
+      await clear(GameKind.sequence, 2, 2);
+      expect(app.progress.sequenceLevel, 3);
+      expect(app.progress.starsOf(GameKind.sequence, 1), 3);
+      expect(app.progress.starsOf(GameKind.sequence, 2), 2);
+      expect(app.progress.totalStars(GameKind.sequence), 5);
+      final stats = app.progress.statsOf(GameKind.sequence);
+      expect(stats.played, 3);
+      expect(stats.cleared, 3);
+      expect(stats.perfect, 1);
+      expect(stats.timeMs, 12000);
+      // Replaying an old level never lowers the unlocked one.
+      await clear(GameKind.matching, 5, 2);
+      expect(app.progress.matchingLevel, 6);
+      await clear(GameKind.matching, 1, 3);
+      expect(app.progress.matchingLevel, 6);
+      // Saved and read back.
+      final saved = await store.readProgress(app.scope, now);
+      expect(saved.sequenceLevel, 3);
+      expect(saved.starsOf(GameKind.sequence, 1), 3);
+      expect(saved.statsOf(GameKind.matching).cleared, 2);
+    },
+  );
+  test(
+    'a failed level costs a heart and is counted with its session',
+    () async {
+      final session = {'level': 4, 'phase': 'failed', 'id': 'x'};
+      expect(
+        await app.spendHeart(
+          game: GameKind.matching,
+          session: session,
+          elapsedMs: 3000,
+        ),
+        true,
+      );
+      expect(app.progress.life.count, 3);
+      final stats = app.progress.statsOf(GameKind.matching);
+      expect(stats.failed, 1);
+      expect(stats.played, 1);
+      expect(stats.successRate, 0);
+      expect(
+        (await store.readSession(app.scope, GameKind.matching))!['phase'],
+        'failed',
+      );
+      expect((await store.readProgress(app.scope, now)).life.count, 3);
+    },
+  );
+  test('levels, stars and statistics survive a merge with older data', () {
+    final a = PlayerProgress(
+      life: const LifeState(observedAt: 1000),
+      sequenceLevel: 5,
+      stars: {'sequence': '3300'},
+      stats: {'sequence': const GameStats(played: 9, cleared: 4)},
+    );
+    final restored = PlayerProgress.fromJson(a.toJson(), 1000);
+    expect(restored.sequenceLevel, 5);
+    expect(restored.starsOf(GameKind.sequence, 2), 3);
+    expect(restored.statsOf(GameKind.sequence).played, 9);
+    // A profile from before levels existed reads with safe defaults.
+    final legacy = PlayerProgress.fromJson({'level': 4}, 1000);
+    expect(legacy.sequenceLevel, 1);
+    expect(legacy.matchingLevel, 1);
+    expect(legacy.starsOf(GameKind.path, 3), 0);
+    expect(legacy.statsOf(GameKind.path).played, 0);
+  });
 }

@@ -2,7 +2,15 @@ import 'dart:math';
 
 enum GameKind { sequence, matching, path }
 
-enum GamePhase { ready, preview, playing, feedback, roundOver, complete }
+enum GamePhase {
+  ready,
+  preview,
+  playing,
+  feedback,
+  roundOver,
+  complete,
+  failed,
+}
 
 const animals = <String, String>{
   'kus': 'Kuş',
@@ -101,40 +109,179 @@ class LifeState {
   }
 }
 
+/// Number of levels in every solo game.
+const levelCount = 30;
+
+/// Best stars per level as a 30-character string of digits 0–3
+/// ("3210…"). Merging two devices keeps the higher digit of each level.
+abstract final class LevelStars {
+  static String clean(dynamic value) {
+    final raw = value is String ? value : '';
+    final digits = List.generate(levelCount, (i) {
+      final c = i < raw.length ? raw.codeUnitAt(i) - 48 : 0;
+      return c < 0 || c > 3 ? 0 : c;
+    });
+    return digits.join();
+  }
+
+  static int of(String stars, int level) =>
+      level < 1 || level > stars.length ? 0 : stars.codeUnitAt(level - 1) - 48;
+
+  static String raise(String stars, int level, int value) {
+    final s = clean(stars);
+    if (level < 1 || level > levelCount || of(s, level) >= value) return s;
+    return s.replaceRange(level - 1, level, '${value.clamp(0, 3)}');
+  }
+
+  static String merge(String a, String b) {
+    final x = clean(a), y = clean(b);
+    return List.generate(
+      levelCount,
+      (i) => max(x.codeUnitAt(i), y.codeUnitAt(i)) - 48,
+    ).join();
+  }
+
+  static int total(String stars) =>
+      clean(stars).codeUnits.fold(0, (sum, c) => sum + c - 48);
+}
+
+/// Lifetime counters for one solo game. Counters only grow, so two devices
+/// merge by keeping the larger value of each (never double counting).
+class GameStats {
+  const GameStats({
+    this.played = 0,
+    this.cleared = 0,
+    this.failed = 0,
+    this.timeMs = 0,
+    this.perfect = 0,
+  });
+  final int played, cleared, failed, timeMs, perfect;
+  int get successRate => played == 0 ? 0 : (cleared * 100 / played).round();
+  GameStats add({bool cleared = false, int timeMs = 0, bool perfect = false}) =>
+      GameStats(
+        played: played + 1,
+        cleared: this.cleared + (cleared ? 1 : 0),
+        failed: failed + (cleared ? 0 : 1),
+        timeMs: this.timeMs + max(0, timeMs),
+        perfect: this.perfect + (perfect ? 1 : 0),
+      );
+  GameStats merge(GameStats o) => GameStats(
+    played: max(played, o.played),
+    cleared: max(cleared, o.cleared),
+    failed: max(failed, o.failed),
+    timeMs: max(timeMs, o.timeMs),
+    perfect: max(perfect, o.perfect),
+  );
+  Map<String, dynamic> toJson() => {
+    'played': played,
+    'cleared': cleared,
+    'failed': failed,
+    'timeMs': timeMs,
+    'perfect': perfect,
+  };
+  factory GameStats.fromJson(dynamic j) {
+    final m = j is Map ? j : const {};
+    int n(String k) => max(0, intValue(m[k]));
+    return GameStats(
+      played: n('played'),
+      cleared: n('cleared'),
+      failed: n('failed'),
+      timeMs: n('timeMs'),
+      perfect: n('perfect'),
+    );
+  }
+}
+
 class PlayerProgress {
   const PlayerProgress({
     required this.life,
     this.level = 1,
     this.completedLevels = 0,
+    this.sequenceLevel = 1,
+    this.matchingLevel = 1,
+    this.stars = const {},
+    this.stats = const {},
     this.points = 0,
     this.sequenceBest = 0,
     this.matchingBestMs,
     this.matchingBestAttempts,
+    this.duelPlayed = 0,
+    this.duelWon = 0,
+    this.duelDrawn = 0,
     this.sound = true,
     this.haptics = true,
   });
   final LifeState life;
-  final int level, completedLevels, points, sequenceBest;
+
+  /// Memory Path: next level to play and number of cleared levels.
+  final int level, completedLevels;
+
+  /// Sequence Memory / Card Matching: next level to play (1–30).
+  final int sequenceLevel, matchingLevel;
+
+  /// Best stars per level, keyed by [GameKind.name].
+  final Map<String, String> stars;
+  final Map<String, GameStats> stats;
+  final int points, sequenceBest, duelPlayed, duelWon, duelDrawn;
   final int? matchingBestMs, matchingBestAttempts;
   final bool sound, haptics;
+
+  int unlocked(GameKind game) => switch (game) {
+    GameKind.path => level,
+    GameKind.sequence => sequenceLevel,
+    GameKind.matching => matchingLevel,
+  };
+
+  /// Stars shown for a level. Levels cleared before stars existed show one.
+  int starsOf(GameKind game, int n) {
+    final best = LevelStars.of(LevelStars.clean(stars[game.name]), n);
+    final passed = game == GameKind.path
+        ? n <= completedLevels
+        : n < unlocked(game);
+    return max(best, passed ? 1 : 0);
+  }
+
+  int cleared(GameKind game) => [
+    for (var n = 1; n <= levelCount; n++)
+      if (starsOf(game, n) > 0) n,
+  ].length;
+  int totalStars(GameKind game) => [
+    for (var n = 1; n <= levelCount; n++) starsOf(game, n),
+  ].fold(0, (a, b) => a + b);
+  GameStats statsOf(GameKind game) => stats[game.name] ?? const GameStats();
+
   PlayerProgress copyWith({
     LifeState? life,
     int? level,
     int? completedLevels,
+    int? sequenceLevel,
+    int? matchingLevel,
+    Map<String, String>? stars,
+    Map<String, GameStats>? stats,
     int? points,
     int? sequenceBest,
     int? matchingBestMs,
     int? matchingBestAttempts,
+    int? duelPlayed,
+    int? duelWon,
+    int? duelDrawn,
     bool? sound,
     bool? haptics,
   }) => PlayerProgress(
     life: life ?? this.life,
     level: level ?? this.level,
     completedLevels: completedLevels ?? this.completedLevels,
+    sequenceLevel: sequenceLevel ?? this.sequenceLevel,
+    matchingLevel: matchingLevel ?? this.matchingLevel,
+    stars: stars ?? this.stars,
+    stats: stats ?? this.stats,
     points: points ?? this.points,
     sequenceBest: sequenceBest ?? this.sequenceBest,
     matchingBestMs: matchingBestMs ?? this.matchingBestMs,
     matchingBestAttempts: matchingBestAttempts ?? this.matchingBestAttempts,
+    duelPlayed: duelPlayed ?? this.duelPlayed,
+    duelWon: duelWon ?? this.duelWon,
+    duelDrawn: duelDrawn ?? this.duelDrawn,
     sound: sound ?? this.sound,
     haptics: haptics ?? this.haptics,
   );
@@ -142,10 +289,19 @@ class PlayerProgress {
     'life': life.toJson(),
     'level': level,
     'completedLevels': completedLevels,
+    'sequenceLevel': sequenceLevel,
+    'matchingLevel': matchingLevel,
+    'stars': {
+      for (final g in GameKind.values) g.name: LevelStars.clean(stars[g.name]),
+    },
+    'stats': {for (final e in stats.entries) e.key: e.value.toJson()},
     'points': points,
     'sequenceBest': sequenceBest,
     'matchingBestMs': matchingBestMs,
     'matchingBestAttempts': matchingBestAttempts,
+    'played': duelPlayed,
+    'won': duelWon,
+    'drawn': duelDrawn,
     'sound': sound,
     'haptics': haptics,
   };
@@ -153,25 +309,88 @@ class PlayerProgress {
     Map<String, dynamic> j,
     int now, {
     bool trustedTime = false,
-  }) => PlayerProgress(
-    life: LifeState.fromJson(
-      Map<String, dynamic>.from(j['life'] as Map? ?? {}),
-      now,
-      trustedTime: trustedTime,
-    ),
-    level: intValue(j['level'], 1).clamp(1, 30),
-    completedLevels: intValue(j['completedLevels']).clamp(0, 30),
-    points: max(0, intValue(j['points'])),
-    sequenceBest: intValue(j['sequenceBest']).clamp(0, 27),
-    matchingBestMs: j['matchingBestMs'] is num
-        ? intValue(j['matchingBestMs'])
-        : null,
-    matchingBestAttempts: j['matchingBestAttempts'] is num
-        ? intValue(j['matchingBestAttempts'])
-        : null,
-    sound: j['sound'] != false,
-    haptics: j['haptics'] != false,
-  );
+  }) {
+    final starMap = j['stars'] is Map ? j['stars'] as Map : const {};
+    final statMap = j['stats'] is Map ? j['stats'] as Map : const {};
+    return PlayerProgress(
+      life: LifeState.fromJson(
+        Map<String, dynamic>.from(j['life'] as Map? ?? {}),
+        now,
+        trustedTime: trustedTime,
+      ),
+      level: intValue(j['level'], 1).clamp(1, levelCount),
+      completedLevels: intValue(j['completedLevels']).clamp(0, levelCount),
+      sequenceLevel: intValue(j['sequenceLevel'], 1).clamp(1, levelCount),
+      matchingLevel: intValue(j['matchingLevel'], 1).clamp(1, levelCount),
+      stars: {
+        for (final g in GameKind.values)
+          g.name: LevelStars.clean(starMap[g.name]),
+      },
+      stats: {
+        for (final g in GameKind.values)
+          if (statMap[g.name] is Map)
+            g.name: GameStats.fromJson(statMap[g.name]),
+      },
+      points: max(0, intValue(j['points'])),
+      sequenceBest: intValue(j['sequenceBest']).clamp(0, 27),
+      matchingBestMs: j['matchingBestMs'] is num
+          ? intValue(j['matchingBestMs'])
+          : null,
+      matchingBestAttempts: j['matchingBestAttempts'] is num
+          ? intValue(j['matchingBestAttempts'])
+          : null,
+      duelPlayed: max(0, intValue(j['played'])),
+      duelWon: max(0, intValue(j['won'])),
+      duelDrawn: max(0, intValue(j['drawn'])),
+      sound: j['sound'] != false,
+      haptics: j['haptics'] != false,
+    );
+  }
+}
+
+/// Sequence Memory level: more cards and less study time as levels rise.
+class SequenceLevel {
+  SequenceLevel(this.number) : assert(number >= 1 && number <= levelCount);
+  final int number;
+  int get count => min(12, 3 + (number - 1) ~/ 3);
+  int get columns => switch (count) {
+    3 => 3,
+    4 => 2,
+    5 || 6 || 9 => 3,
+    _ => 4,
+  };
+  int get rows => (count / columns).ceil();
+  int get previewMs => 1000 + count * const [1000, 850, 700][(number - 1) % 3];
+  int get answerMs => count * 5000;
+}
+
+/// Card Matching level: board grows from 3 to 12 pairs. A move is one pair
+/// turned over; the player has 1.5 moves per card on the table.
+class MatchingLevel {
+  MatchingLevel(this.number) : assert(number >= 1 && number <= levelCount);
+  final int number;
+  int get pairs => number <= 3
+      ? 3
+      : number <= 7
+      ? 4
+      : number <= 12
+      ? 6
+      : number <= 18
+      ? 8
+      : number <= 24
+      ? 10
+      : 12;
+  int get cards => pairs * 2;
+  int get columns => cards == 6 ? 3 : 4;
+  int get rows => cards ~/ columns;
+  int get moves => cards * 3 ~/ 2;
+
+  /// Stars for a cleared board by the moves used.
+  int starsFor(int attempts) => attempts <= (pairs * 1.75).ceil()
+      ? 3
+      : attempts <= (pairs * 2.25).ceil()
+      ? 2
+      : 1;
 }
 
 class LevelDefinition {

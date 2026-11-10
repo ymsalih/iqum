@@ -61,7 +61,9 @@ class _BootstrapState extends State<Bootstrap> {
         debugShowCheckedModeBanner: false,
         theme: AppColors.theme,
         builder: (context, child) => AppFrame(child: child!),
+        // Continues the native petrol splash: same owl, same place.
         home: Scaffold(
+          backgroundColor: AppColors.petrol,
           body: SafeArea(
             child: Center(
               child: Padding(
@@ -69,24 +71,37 @@ class _BootstrapState extends State<Bootstrap> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Brand(size: 65),
-                    const SizedBox(height: 32),
+                    const OwlMark(size: 120),
+                    const SizedBox(height: 10),
+                    Text(
+                      'IQUM',
+                      style: AppColors.display(
+                        34,
+                      ).copyWith(color: AppColors.paper, letterSpacing: 2),
+                    ),
+                    const SizedBox(height: 24),
                     if (snapshot.hasError) ...[
-                      const Text(
+                      Text(
                         'Kayıtların şu an açılamadı. Yeniden deneyebilirsin.',
                         textAlign: TextAlign.center,
-                        style: AppColors.caption,
+                        style: AppColors.caption.copyWith(
+                          color: AppColors.goldLight,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       IqumButton(
                         'Yeniden dene',
+                        accent: true,
                         onPressed: () => setState(() => setup = _setup()),
                       ),
                     ] else
                       const SizedBox(
                         width: 25,
                         height: 25,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.gold,
+                        ),
                       ),
                   ],
                 ),

@@ -49,24 +49,25 @@ void main() {
         await screenshot('home');
         await tester.tap(find.text('Devam et'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Yolu ezberle'));
-        await tester.pump(const Duration(milliseconds: 400));
+        await tester.tap(find.text('Yolu göster'));
+        await tester.pump(const Duration(milliseconds: 600));
         await screenshot('path-preview');
-        await tester.pump(const Duration(milliseconds: 9200));
+        final preview = Duration(milliseconds: LevelDefinition(1).previewMs);
+        await tester.pump(preview);
         final wrong = find
             .byWidgetPredicate(
               (w) =>
                   w is PathTile &&
                   w.row == 0 &&
-                  w.column != 1 &&
+                  w.column != LevelDefinition(1).route[0] &&
                   w.onTap != null,
             )
             .first;
         await tester.tap(wrong);
-        await tester.pump(const Duration(milliseconds: 1200));
+        await tester.pump(const Duration(milliseconds: 1400));
         expect(controller.progress.life.count, 3);
-        await tester.tap(find.text('Yolu ezberle'));
-        await tester.pump(const Duration(milliseconds: 9200));
+        await tester.tap(find.text('Yolu göster'));
+        await tester.pump(preview + const Duration(milliseconds: 300));
         final route = LevelDefinition(1).route;
         for (var row = 0; row < route.length; row++) {
           await tester.tap(
@@ -78,27 +79,34 @@ void main() {
                   w.onTap != null,
             ),
           );
-          await tester.pump(const Duration(milliseconds: 250));
+          await tester.pump(const Duration(milliseconds: 450));
           if (row == 1) await screenshot('path-walking');
         }
         await tester.pumpAndSettle();
         expect(find.byType(ResultScreen), findsOneWidget);
         expect(controller.progress.level, 2);
         expect(controller.progress.completedLevels, 1);
+        // One wrong step before clearing: two stars.
+        expect(controller.progress.starsOf(GameKind.path, 1), 2);
         await tester.tap(find.text('Ana sayfaya dön'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('Antrenman').first);
-        await tester.tap(find.text('Antrenman').first);
+
+        // Sequence Memory level 1: one right answer, then a wrong one.
+        await tester.ensureVisible(find.text('Level 1').first);
+        await tester.tap(find.text('Level 1').first);
         await tester.pumpAndSettle();
         await tester.tap(find.text('Kartları göster'));
         await tester.pump(const Duration(milliseconds: 400));
         final sequence = tester
             .widgetList<MemoryTile>(find.byType(MemoryTile))
             .toList();
+        expect(sequence.length, SequenceLevel(1).count);
         final first = sequence[0].animal!,
             incorrect = animals.keys.firstWhere((a) => a != sequence[1].animal);
         await screenshot('sequence-preview');
-        await tester.pump(const Duration(milliseconds: 6200));
+        await tester.pump(
+          Duration(milliseconds: SequenceLevel(1).previewMs + 300),
+        );
         Finder choice(String key) => find.byWidgetPredicate(
           (w) =>
               w is Semantics &&
@@ -109,20 +117,26 @@ void main() {
         await tester.pump(const Duration(milliseconds: 400));
         await tester.tap(choice(incorrect));
         await tester.pumpAndSettle();
-        expect(find.text('Sonraki tur'), findsOneWidget);
+        expect(find.text('Tekrar dene'), findsOneWidget);
+        expect(controller.progress.life.count, 2);
+        expect(controller.progress.statsOf(GameKind.sequence).failed, 1);
         await tester.tap(find.byType(BackButton));
         await tester.pumpAndSettle();
         final saved = await store.readSession(
           controller.scope,
           GameKind.sequence,
         );
-        expect(saved!['total'], 1);
-        await tester.ensureVisible(find.text('Antrenman').last);
-        await tester.tap(find.text('Antrenman').last);
+        expect(saved!['phase'], 'failed');
+        expect(saved['answered'], 1);
+
+        // Card Matching level 1: three pairs found without a miss.
+        await tester.ensureVisible(find.text('Level 1').last);
+        await tester.tap(find.text('Level 1').last);
         await tester.pumpAndSettle();
         final tiles = tester
             .widgetList<MemoryTile>(find.byType(MemoryTile))
             .toList();
+        expect(tiles.length, MatchingLevel(1).cards);
         final keys = tiles.map((t) => t.animal!).toSet().toList();
         for (var n = 0; n < keys.length; n++) {
           final pair = tiles
@@ -142,7 +156,8 @@ void main() {
         }
         await tester.pumpAndSettle();
         expect(find.byType(ResultScreen), findsOneWidget);
-        expect(controller.progress.matchingBestAttempts, 8);
+        expect(controller.progress.matchingLevel, 2);
+        expect(controller.progress.starsOf(GameKind.matching, 1), 3);
         expect(controller.progress.points, 0);
         await screenshot('result');
         await tester.tap(find.text('Ana sayfaya dön'));
@@ -156,11 +171,11 @@ void main() {
         await controller.restore();
         expect(controller.scope, scope);
         expect(controller.progress.level, 2);
-        expect(controller.progress.life.count, 3);
-        expect(controller.progress.matchingBestAttempts, 8);
+        expect(controller.progress.matchingLevel, 2);
+        expect(controller.progress.life.count, 2);
         expect(
-          (await store.readSession(scope, GameKind.sequence))!['total'],
-          1,
+          (await store.readSession(scope, GameKind.sequence))!['phase'],
+          'failed',
         );
         await mount();
         await screenshot('home-restored');

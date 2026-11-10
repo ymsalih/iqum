@@ -21,9 +21,6 @@ abstract final class Responsive {
         ? 18
         : 22;
   }
-
-  static bool compactHeight(BuildContext context) =>
-      MediaQuery.sizeOf(context).height < 640;
 }
 
 /// Wraps the whole app (MaterialApp.builder): clamps text scaling and, on
@@ -75,33 +72,4 @@ class AppFrame extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Sizes a game board so the whole board fits the visible height when
-/// possible. [aspect] is the board's width / height; [reserved] is the
-/// height taken by the app bar, HUD and controls around it.
-class FitBoard extends StatelessWidget {
-  const FitBoard({
-    super.key,
-    required this.aspect,
-    required this.reserved,
-    required this.child,
-    this.minWidth = 260,
-  });
-  final double aspect, reserved, minWidth;
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final media = MediaQuery.of(context);
-      final visible = media.size.height - media.padding.vertical - reserved;
-      final width = math.min(
-        constraints.maxWidth,
-        math.max(minWidth, visible * aspect),
-      );
-      return Center(
-        child: SizedBox(width: width, child: child),
-      );
-    },
-  );
 }

@@ -4,9 +4,11 @@ Android ve iOS için Flutter hafıza oyunu. Türkçe, dikey ekran; "masa oyunu" 
 
 ## Çalışan özellikler
 
-- **Sıra Hafızası:** 6/9/12 kartlı üç tur; görsel cevap paneli, ezber/cevap süreleri ve kişisel rekor.
-- **Kart Eşleştirme:** 16 kartlı antrenman; ortak tahta üzerinde sırayla çevrimiçi düello. Eşleşme +1 ve aynı oyuncuda devam; hata veya 15 saniye aşımında sıra değişimi; puan kesilmez.
-- **Hafıza Yolu:** 30 sabit level, giderek büyüyen tahta ve kısalan ezber süresi. Dört kalp; yanlış adımda bir kalp kaybı ve aynı leveli baştan deneme; 30 dakikada bir yenilenme.
+- **Sıra Hafızası:** 30 level; kart sayısı 3'ten 12'ye çıkar, kart başına ezber süresi kısalır. Yanlış cevap veya biten süre leveli yakar ve 1 can harcar. Düelloda 6/9/12 kartlı üç tur aynen sürer.
+- **Kart Eşleştirme:** 30 level; tahta 3 çiftten 12 çifte (6–24 kart) büyür. Hamle (bir çift açma) hakkı kart sayısının 1,5 katıdır; hak biterse level yanar ve 1 can harcanır. Az hamle daha çok yıldız getirir. Düello: 16 kartlı ortak tahtada sırayla; eşleşme +1 ve aynı oyuncuda devam; hata veya 15 saniye aşımında sıra değişimi; puan kesilmez.
+- **Hafıza Yolu:** 30 sabit level, giderek büyüyen tahta ve kısalan ezber süresi. Yol, tahtanın üstüne gelen ayrı bir kartta gösterilir; süre bitince kart kalkar ve kapalı karolar hafızayla çevrilir. Yanlış adımda 1 can kaybı ve aynı leveli baştan deneme.
+- **Leveller, yıldızlar ve can:** üç oyunun her levelinde 1–3 yıldız (hatasız geçiş 3 yıldız; eşleştirmede hamle sayısına göre). Leveller ekranında üç bölümlü harita (Çayır, Orman, Zirve) tamamlanan levelleri ve yıldızları gösterir. Dört can üç oyunda ortaktır, 30 dakikada bir yenilenir; düello can harcamaz. Devam eden denemeyi yeniden başlatmak 1 can harcar.
+- **İstatistikler:** profilde oyun başına geçilen level, yıldız, deneme, başarı oranı, hatasız geçiş ve oyun süresi; hesapla düello oynanan/kazanılan/berabere/kaybedilen.
 - **Yerel kayıt:** gerçek SQLite, yarım kalan tek oyunculu oyunları geri yükleme, uygulama kapalıyken can yenileme, rekorlar, ses/titreşim tercihleri.
 - **Hesap:** Google/Apple giriş kodu, misafir ilerlemesinin tekrar işlenmeyen aktarımı ve hesaplar arasında ayrı yerel veri alanları.
 - **Düello sunucusu:** kodlu oda, rastgele eşleşme, hazır olma, sunucu süreleri, gizli kart yerleşimi, bağlantı kaybı ve tek seferlik puan yazımı. Galibiyet +100, beraberlik +50, mağlubiyet 0.
@@ -60,13 +62,15 @@ Yerel Firebase testleri Java 21+ ve Node 22 kullanır. Android entegrasyon testi
 - `lib/ui/theme.dart`: renk/tipografi belirteçleri. Başlıklar Baloo 2 (600/800), metinler Nunito (500/700/800); fontlar Latin + Türkçe karakterlere alt kümelenmiş statik dosyalardır.
 - `lib/ui/components.dart`: `Piece` (dudaklı yüzey), `IqumButton` (basınca dudağa gömülen tuş), `MemoryTile` (perspektifli çevirme, eşleşmede zıplama, hatada sallanma), `PathTile`, `ClockStrip`, `StatPill`, `AnimalChoice`.
 - `lib/ui/responsive.dart`: `AppFrame` yazı ölçeğini 1,3× ile sınırlar; 640 dp'den geniş ekranlarda oyunu ortalanmış dikey sütunda gösterir. `FitBoard` oyun tahtalarını görünür yüksekliğe sığdırır.
-- Performans: gölgeler bulanıksız dudaklardır; blur, shader, `Opacity` katmanı veya sürekli animasyon yoktur. Yol haritası tek seferlik `CustomPainter`, kart sırtı küçültülmüş tek PNG'dir.
+- `lib/ui/game_layout.dart`: oyun ekranlarında başlık ve kontrolleri ölçer, tahtayı aradaki yüksekliği dolduracak en büyük boyutta çizer; sığmazsa sayfa kaydırılır.
+- Marka: maskot "Bilge" baykuş. Android uyarlanabilir ikon (ön/arka/tek renk katman), iOS tam dolu ikon ve petrol zeminli açılış ekranları `design/brand/brand.cjs` kaynağından üretilir.
+- Performans: gölgeler bulanıksız dudaklardır; blur, shader veya sürekli animasyon yoktur. Level haritası tek seferlik `CustomPainter`, kart sırtı küçültülmüş tek PNG'dir.
 
 ### Rive hayvanları
 
 `assets/art/<hayvan>.riv` dosyaları `node design/rive/build_animals.cjs` ile özgün vektör çizimlerden (`design/animals.cjs`) üretilir; parçalar ve hareketler `design/rive/animal_rigs.cjs` içindedir. Her dosyada varsayılan state machine vardır: giriş → `reveal` (kart açılınca ~0,57 sn), `match` tetikleyicisi → `celebrate` (eşleşme/doğru cevap). İkisi de tek seferliktir; klip bitince Rive kare üretmez ve `AnimalArt` denetleyiciyi kapatır. Rive çalışamazsa veya hareketi azaltma açıksa aynı çizimin PNG'si gösterilir. `test/rive_art_test.dart` dosyaları gerçek Rive çalışma zamanıyla doğrular (masaüstü kütüphanesi için bir kez `dart run rive_native:setup --platform windows`).
 
-- `lib/domain`: saf Dart oyun kuralları, 30 level tanımı ve can cüzdanı.
+- `lib/domain`: saf Dart oyun kuralları, üç oyunun 30'ar level tanımı, yıldız/istatistik modeli ve can cüzdanı.
 - `lib/application`: Riverpod, kayıt/hesap kapsamı, idempotent aktarım ve ses/titreşim.
 - `lib/data`: SQLite ve gerçek Firebase istemcisi; yapılandırmasız çevrimdışı çalışma.
 - `lib/ui`: Flutter ekranları ve yalnızca hareket eden kart/karoyu güncelleyen bileşenler.
@@ -74,6 +78,6 @@ Yerel Firebase testleri Java 21+ ve Node 22 kullanır. Android entegrasyon testi
 - `firestore.rules`: üyeye özel maç okuma; puan, sıra ve gizli veriye istemci yazma yasağı.
 - `assets`: 12 hayvan çizimi (PNG + Rive), marka görselleri, kısa WAV sesleri ve açık lisanslı Baloo 2/Nunito fontları.
 
-Hayvanların düzenlenebilir vektör kaynağı `design/animals.cjs` içindedir. `node design/build.cjs` ve ardından `node scripts/prepare_assets.cjs` ile önizleme ve Flutter PNG dosyaları yenilenir; bu adım `sharp` paketini gerektirir. Logo, uygulama/mağaza ikonları, kart sırtı ve tanıtım grafiği `node design/brand/build_brand.cjs` (`sharp` + `opentype.js`), ses efektleri `node design/sound/build_sounds.cjs` ile üretilir. `node scripts/preview_animals.cjs`, 12 hayvanı büyük boyutta ve 40 piksel kart boyutunda karşılaştıran `output/artwork/animals-overview.png` görselini oluşturur.
+Hayvanların düzenlenebilir vektör kaynağı `design/animals.cjs` içindedir. `node design/build.cjs` ve ardından `node scripts/prepare_assets.cjs` ile önizleme ve Flutter PNG dosyaları yenilenir; bu adım `sharp` paketini gerektirir. Logo, uygulama/uyarlanabilir/mağaza ikonları, açılış ekranı görselleri, kart sırtı ve tanıtım grafiği `node design/brand/build_brand.cjs` (`sharp` + `opentype.js`), ses efektleri `node design/sound/build_sounds.cjs` ile üretilir. `node scripts/preview_animals.cjs`, 12 hayvanı büyük boyutta ve 40 piksel kart boyutunda karşılaştıran `output/artwork/animals-overview.png` görselini oluşturur.
 
 Ürün kararları `docs/PRODUCT_SPEC.md`, ilk geliştirme planı `docs/IMPLEMENTATION.md` içindedir. Onaylanan tasarım kaynakları `design/` altında korunur; `design/index.html` önceki tarayıcı prototipidir, gerçek Flutter uygulaması değildir.

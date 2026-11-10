@@ -8,6 +8,7 @@ import '../data/backend.dart';
 import '../domain/models.dart';
 import 'components.dart';
 import 'responsive.dart';
+import 'game_layout.dart';
 import 'home_screen.dart';
 import 'solo_screen.dart';
 import 'theme.dart';
@@ -616,12 +617,19 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
             now: () => now,
           ),
         ]);
-      } else if (m['gameType'] == 'matching') {
-        content.addAll(_matching(m));
-      } else {
-        content.addAll(_sequence(m));
       }
     }
+    final gutter = Responsive.gutter(context);
+    final playing =
+        m != null &&
+        m['status'] != 'waiting' &&
+        m['status'] != 'cancelled' &&
+        m['phase'] != 'countdown';
+    final game = !playing
+        ? null
+        : m['gameType'] == 'matching'
+        ? _matching(m)
+        : _sequence(m);
     return PopScope(
       canPop:
           leaving || (m?['status'] != 'active' && m?['status'] != 'waiting'),
@@ -636,13 +644,23 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
             : 'Eşzamanlı · Düello',
         child: m == null && connectionError == null
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  Responsive.gutter(context),
-                  6,
-                  Responsive.gutter(context),
-                  24,
+            : game != null
+            ? GameLayout(
+                padding: EdgeInsets.fromLTRB(gutter, 6, gutter, 16),
+                aspect: game.fit.aspect,
+                chrome: game.fit.chrome,
+                header: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [...content, ...game.header],
                 ),
+                board: game.board,
+                footer: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: game.footer,
+                ),
+              )
+            : SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(gutter, 6, gutter, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: content,
@@ -862,88 +880,87 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
     );
   }
 
-  List<Widget> _matching(Map<String, dynamic> m) {
+  _GameView _matching(Map<String, dynamic> m) {
     final revealed = Map<String, dynamic>.from(m['revealed'] as Map? ?? {}),
         matched = (m['matched'] as List? ?? []).map((e) => intValue(e)).toSet(),
         mine = m['turn'] == me,
         feedback = m['phase'] == 'feedback',
         mismatch = feedback && m['lastEvent'] == 'mismatch';
-    return [
-      Text('Eşini hatırla.', style: AppColors.display(28)),
-      const Text(
-        'Aynı tahta. İki hafıza. Sıra sende mi?',
-        style: AppColors.caption,
-      ),
-      _scores(m),
-      ClockStrip(
-        label: feedback
-            ? 'Kartları aklında tut'
-            : mine
-            ? 'Sıra sende'
-            : 'Rakibin oynuyor',
-        deadline: intValue(feedback ? m['feedbackUntil'] : m['turnDeadline']),
-        totalMs: feedback ? 900 : 15000,
-        now: () => now,
-      ),
-      FitBoard(
-        aspect: .8,
-        reserved: 330,
-        child: Board(
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 16,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 9,
-              mainAxisSpacing: 10,
-              childAspectRatio: .8,
-            ),
-            itemBuilder: (context, i) => MemoryTile(
-              key: ValueKey('duel-$i'),
-              index: i,
-              animal: revealed['$i'] as String?,
-              open: revealed.containsKey('$i'),
-              matched: matched.contains(i),
-              wrong:
-                  mismatch &&
-                  revealed.containsKey('$i') &&
-                  !matched.contains(i),
-              onTap:
-                  mine &&
-                      !feedback &&
-                      !sending &&
-                      !matched.contains(i) &&
-                      !revealed.containsKey('$i')
-                  ? () => command('submitMove', {
-                      'actionId': newId(),
-                      'move': {'index': i},
-                    })
-                  : null,
-            ),
+    return (
+      fit: GameLayout.grid(columns: 4, rows: 4, tileAspect: .8),
+      header: [
+        Text('Eşini hatırla.', style: AppColors.display(28)),
+        const Text(
+          'Aynı tahta. İki hafıza. Sıra sende mi?',
+          style: AppColors.caption,
+        ),
+        _scores(m),
+        ClockStrip(
+          label: feedback
+              ? 'Kartları aklında tut'
+              : mine
+              ? 'Sıra sende'
+              : 'Rakibin oynuyor',
+          deadline: intValue(feedback ? m['feedbackUntil'] : m['turnDeadline']),
+          totalMs: feedback ? 900 : 15000,
+          now: () => now,
+        ),
+      ],
+      board: Board(
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 16,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            crossAxisSpacing: 9,
+            mainAxisSpacing: 10,
+            childAspectRatio: .8,
+          ),
+          itemBuilder: (context, i) => MemoryTile(
+            key: ValueKey('duel-$i'),
+            index: i,
+            animal: revealed['$i'] as String?,
+            open: revealed.containsKey('$i'),
+            matched: matched.contains(i),
+            wrong:
+                mismatch && revealed.containsKey('$i') && !matched.contains(i),
+            onTap:
+                mine &&
+                    !feedback &&
+                    !sending &&
+                    !matched.contains(i) &&
+                    !revealed.containsKey('$i')
+                ? () => command('submitMove', {
+                    'actionId': newId(),
+                    'move': {'index': i},
+                  })
+                : null,
           ),
         ),
       ),
-      GameNote(
-        feedback
-            ? (m['lastEvent'] == 'matched'
-                  ? 'Eşleşme +1 puan. Sıra aynı oyuncuda.'
-                  : 'Eşleşmedi. Puan eksilmez; sıra değişir.')
-            : m['lastEvent'] == 'timeout'
-            ? '15 saniye doldu. Puan eksilmedi.'
-            : 'Açılan kartları ikiniz de görüyorsunuz.',
-      ),
-      Center(
-        child: StatPill(
-          label: 'BULUNAN ÇİFT',
-          icon: Icons.style_rounded,
-          value: Text('${matched.length ~/ 2}/8'),
+      footer: [
+        GameNote(
+          feedback
+              ? (m['lastEvent'] == 'matched'
+                    ? 'Eşleşme +1 puan. Sıra aynı oyuncuda.'
+                    : 'Eşleşmedi. Puan eksilmez; sıra değişir.')
+              : m['lastEvent'] == 'timeout'
+              ? '15 saniye doldu. Puan eksilmedi.'
+              : 'Açılan kartları ikiniz de görüyorsunuz.',
         ),
-      ),
-    ];
+        Center(
+          child: StatPill(
+            label: 'BULUNAN ÇİFT',
+            icon: Icons.style_rounded,
+            value: Text('${matched.length ~/ 2}/8'),
+          ),
+        ),
+      ],
+    );
   }
 
-  List<Widget> _sequence(Map<String, dynamic> m) {
+  _GameView _sequence(Map<String, dynamic> m) {
     final round = intValue(m['round']).clamp(0, 2),
         preview = m['phase'] == 'preview',
         answer = m['phase'] == 'answer',
@@ -953,94 +970,104 @@ class _DuelMatchScreenState extends ConsumerState<DuelMatchScreen>
             .toList(),
         done = (m['roundDone'] as List? ?? [false, false]),
         my = me < 0 ? 0 : me;
-    return [
-      Text('Sırası aklında mı?', style: AppColors.display(28)),
-      Text(
-        'Tur ${round + 1} / 3 · Aynı dizi, iki hafıza.',
-        style: AppColors.caption,
+    final columns = counts[round] == 12 ? 4 : 3;
+    return (
+      fit: GameLayout.grid(
+        columns: columns,
+        rows: (counts[round] / columns).ceil(),
+        tileAspect: .9,
       ),
-      _scores(m),
-      ClockStrip(
-        label: preview
-            ? 'Ezberleme zamanı'
-            : answer
-            ? (done[my] == true
-                  ? 'Rakibin tamamlaması bekleniyor'
-                  : 'Sıradaki hayvanı seç')
-            : 'Bir sonraki tur hazırlanıyor',
-        deadline: intValue(m['phaseDeadline']),
-        totalMs: preview
-            ? [6000, 8000, 10000][round]
-            : answer
-            ? [30000, 45000, 60000][round]
-            : 2000,
-        now: () => now,
-      ),
-      FitBoard(
-        aspect:
-            (counts[round] == 12 ? 4 : 3) *
-            .9 /
-            (counts[round] / (counts[round] == 12 ? 4 : 3)).ceil(),
-        reserved: answer && done[my] != true ? 620 : 380,
-        child: Board(
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: counts[round],
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: counts[round] == 12 ? 4 : 3,
-              crossAxisSpacing: 9,
-              mainAxisSpacing: 10,
-              childAspectRatio: .9,
-            ),
-            itemBuilder: (context, i) => MemoryTile(
-              index: i,
-              number: i + 1,
-              animal: lastPattern != null && i < lastPattern!.length
-                  ? lastPattern![i]
-                  : null,
-              open: preview || i < correct[my],
-              matched: !preview && i < correct[my],
-              highlight: answer && done[my] != true && i == correct[my],
-            ),
+      header: [
+        Text('Sırası aklında mı?', style: AppColors.display(28)),
+        Text(
+          'Tur ${round + 1} / 3 · Aynı dizi, iki hafıza.',
+          style: AppColors.caption,
+        ),
+        _scores(m),
+        ClockStrip(
+          label: preview
+              ? 'Ezberleme zamanı'
+              : answer
+              ? (done[my] == true
+                    ? 'Rakibin tamamlaması bekleniyor'
+                    : 'Sıradaki hayvanı seç')
+              : 'Bir sonraki tur hazırlanıyor',
+          deadline: intValue(m['phaseDeadline']),
+          totalMs: preview
+              ? [6000, 8000, 10000][round]
+              : answer
+              ? [30000, 45000, 60000][round]
+              : 2000,
+          now: () => now,
+        ),
+      ],
+      board: Board(
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: counts[round],
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 9,
+            mainAxisSpacing: 10,
+            childAspectRatio: .9,
+          ),
+          itemBuilder: (context, i) => MemoryTile(
+            index: i,
+            number: i + 1,
+            animal: lastPattern != null && i < lastPattern!.length
+                ? lastPattern![i]
+                : null,
+            open: preview || i < correct[my],
+            matched: !preview && i < correct[my],
+            highlight: answer && done[my] != true && i == correct[my],
           ),
         ),
       ),
-      if (answer && done[my] != true) ...[
-        const GameNote('Sıradaki kartın hayvanı hangisiydi?'),
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 4,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 9,
-              childAspectRatio: .95,
-              children: animals.entries
-                  .map(
-                    (a) => AnimalChoice(
-                      animal: a.key,
-                      label: a.value,
-                      onTap: sending
-                          ? null
-                          : () => command('submitMove', {
-                              'actionId': newId(),
-                              'move': {'animal': a.key},
-                            }),
-                    ),
-                  )
-                  .toList(),
+      footer: [
+        if (answer && done[my] != true) ...[
+          const GameNote('Sıradaki kartın hayvanı hangisiydi?'),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 4,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 9,
+                childAspectRatio: .95,
+                children: animals.entries
+                    .map(
+                      (a) => AnimalChoice(
+                        animal: a.key,
+                        label: a.value,
+                        onTap: sending
+                            ? null
+                            : () => command('submitMove', {
+                                'actionId': newId(),
+                                'move': {'animal': a.key},
+                              }),
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
-        ),
-      ] else
-        GameNote(
-          preview
-              ? 'Hayvanları sırayla aklında tut.'
-              : 'Bu turdaki doğru cevapların korundu.',
-        ),
-    ];
+        ] else
+          GameNote(
+            preview
+                ? 'Hayvanları sırayla aklında tut.'
+                : 'Bu turdaki doğru cevapların korundu.',
+          ),
+      ],
+    );
   }
 }
+
+typedef _GameView = ({
+  ({double aspect, Size chrome}) fit,
+  List<Widget> header,
+  Widget board,
+  List<Widget> footer,
+});

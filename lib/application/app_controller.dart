@@ -93,17 +93,41 @@ class AppController extends ChangeNotifier {
     if (changed) notifyListeners();
   }
 
-  Future<bool> spendHeart({Map<String, dynamic>? pathSession}) async {
+  /// Costs one heart for a failed level. With [game], the failure is also
+  /// counted in that game's statistics; [session] is saved in the same
+  /// transaction so a crash cannot refund the heart or lose the attempt.
+  Future<bool> spendHeart({
+    Map<String, dynamic>? pathSession,
+    GameKind? game,
+    Map<String, dynamic>? session,
+    int elapsedMs = 0,
+  }) async {
     final current = _localLife(progress.life).at(now);
     if (current.count == 0) return false;
     final previous = progress;
-    progress = progress.copyWith(life: current.spend(now));
+    var updated = progress.copyWith(life: current.spend(now));
+    if (game != null) {
+      updated = updated.copyWith(
+        stats: {
+          ...updated.stats,
+          game.name: updated.statsOf(game).add(timeMs: elapsedMs),
+        },
+      );
+    }
+    progress = updated;
     notifyListeners();
     try {
-      if (pathSession == null) {
-        await store.saveProgress(scope, progress);
+      if (pathSession != null) {
+        await store.saveProgressAndSession(
+          scope,
+          progress,
+          GameKind.path,
+          pathSession,
+        );
+      } else if (game != null && session != null) {
+        await store.saveProgressAndSession(scope, progress, game, session);
       } else {
-        await store.saveProgressAndPath(scope, progress, pathSession);
+        await store.saveProgress(scope, progress);
       }
     } catch (_) {
       progress = previous;
@@ -156,36 +180,62 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  /// Records a cleared level: unlocks the next one, keeps the best stars
+  /// and updates the game's statistics and personal records.
   Future<void> complete(RunRecord record) async {
     var updated = progress;
-    if (record.game == GameKind.path) {
-      updated = updated.copyWith(
-        level: max(progress.level, min(30, intValue(record.data['level']) + 1)),
-        completedLevels: max(
-          progress.completedLevels,
-          intValue(record.data['level']).clamp(0, 30),
+    final game = record.game,
+        level = intValue(record.data['level'], 1).clamp(1, levelCount),
+        stars = intValue(record.data['stars'], 1).clamp(1, 3),
+        next = min(levelCount, level + 1),
+        elapsed = intValue(record.data['elapsedMs']);
+    updated = updated.copyWith(
+      stars: {
+        ...updated.stars,
+        game.name: LevelStars.raise(
+          LevelStars.clean(updated.stars[game.name]),
+          level,
+          stars,
         ),
+      },
+      stats: {
+        ...updated.stats,
+        game.name: updated
+            .statsOf(game)
+            .add(cleared: true, timeMs: elapsed, perfect: stars == 3),
+      },
+    );
+    if (game == GameKind.path) {
+      updated = updated.copyWith(
+        level: max(progress.level, next),
+        completedLevels: max(progress.completedLevels, level),
       );
     }
-    if (record.game == GameKind.sequence) {
+    if (game == GameKind.sequence) {
       updated = updated.copyWith(
+        sequenceLevel: max(progress.sequenceLevel, next),
         sequenceBest: max(
           progress.sequenceBest,
-          intValue(record.data['correct']),
+          intValue(record.data['correct']).clamp(0, 27),
         ),
       );
     }
-    if (record.game == GameKind.matching) {
-      final ms = intValue(record.data['elapsedMs']),
-          attempts = intValue(record.data['attempts']);
+    if (game == GameKind.matching) {
       updated = updated.copyWith(
-        matchingBestMs: progress.matchingBestMs == null
-            ? ms
-            : min(progress.matchingBestMs!, ms),
-        matchingBestAttempts: progress.matchingBestAttempts == null
-            ? attempts
-            : min(progress.matchingBestAttempts!, attempts),
+        matchingLevel: max(progress.matchingLevel, next),
       );
+      // The 16-card record keeps its original meaning across board sizes.
+      if (intValue(record.data['pairs']) == 8) {
+        final attempts = intValue(record.data['attempts']);
+        updated = updated.copyWith(
+          matchingBestMs: progress.matchingBestMs == null
+              ? elapsed
+              : min(progress.matchingBestMs!, elapsed),
+          matchingBestAttempts: progress.matchingBestAttempts == null
+              ? attempts
+              : min(progress.matchingBestAttempts!, attempts),
+        );
+      }
     }
     await store.finishRun(scope, record, updated);
     progress = updated;
@@ -266,6 +316,25 @@ class AppController extends ChangeNotifier {
       local.copyWith(
         level: max(local.level, remote.level),
         completedLevels: max(local.completedLevels, remote.completedLevels),
+        sequenceLevel: max(local.sequenceLevel, remote.sequenceLevel),
+        matchingLevel: max(local.matchingLevel, remote.matchingLevel),
+        stars: {
+          for (final g in GameKind.values)
+            g.name: LevelStars.merge(
+              local.stars[g.name] ?? '',
+              remote.stars[g.name] ?? '',
+            ),
+        },
+        stats: {
+          for (final g in GameKind.values)
+            if (local.stats.containsKey(g.name) ||
+                remote.stats.containsKey(g.name))
+              g.name: local.statsOf(g).merge(remote.statsOf(g)),
+        },
+        // Duel results are settled by the server only.
+        duelPlayed: max(local.duelPlayed, remote.duelPlayed),
+        duelWon: max(local.duelWon, remote.duelWon),
+        duelDrawn: max(local.duelDrawn, remote.duelDrawn),
         life: _localLife(local.life).merge(remote.life, now),
         points: remote.points,
         sequenceBest: max(local.sequenceBest, remote.sequenceBest),

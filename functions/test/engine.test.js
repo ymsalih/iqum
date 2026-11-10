@@ -26,3 +26,16 @@ test('past or future client dates cannot renew imported hearts or change the ser
   assert.equal(repeated.life.nextAt,1802000);
   assert.equal(lifeAt(repeated.life,1801999).count,0);assert.equal(lifeAt(repeated.life,1802000).count,1);
 });
+
+test('solo levels, stars and statistics merge upward and are validated',()=>{
+  const server=mergeProfile({sequenceLevel:4,stars:{sequence:'321'},stats:{sequence:{played:5,cleared:3,failed:2,timeMs:9000,perfect:1}}},{},1000);
+  assert.equal(server.sequenceLevel,4);assert.equal(server.matchingLevel,1);
+  assert.equal(server.stars.sequence,'321'+'0'.repeat(27));
+  const p=mergeProfile(server,{sequenceLevel:99,matchingLevel:3,stars:{sequence:'139x',path:'2'},stats:{sequence:{played:4,cleared:9,failed:-5,timeMs:'x'},matching:{played:2}}},2000);
+  assert.equal(p.sequenceLevel,30);assert.equal(p.matchingLevel,3);
+  assert.equal(p.stars.sequence.slice(0,4),'3310');assert.equal(p.stars.path[0],'2');assert.equal(p.stars.sequence.length,30);
+  assert.deepEqual(p.stats.sequence,{played:5,cleared:9,failed:2,timeMs:9000,perfect:1});
+  assert.equal(p.stats.matching.played,2);assert.equal(p.stats.path,undefined);
+  const lower=mergeProfile(p,{sequenceLevel:2,stars:{sequence:'000'}},3000);
+  assert.equal(lower.sequenceLevel,30);assert.equal(lower.stars.sequence.slice(0,3),'331');
+});

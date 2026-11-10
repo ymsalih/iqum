@@ -105,7 +105,14 @@ export function lifeAt(raw,now){
   if(count<4&&now>=next){const n=1+Math.floor((now-next)/1800000);count=Math.min(4,count+n);next+=n*1800000;}
   return {count,nextAt:count===4?null:next,observedAt:now};
 }
-export function defaultProfile(now){return {level:1,completedLevels:0,points:0,sequenceBest:0,matchingBestMs:null,matchingBestAttempts:null,life:lifeAt({},now),played:0,won:0,drawn:0};}
+export const SOLO_GAMES=['path','sequence','matching'];
+const STAT_KEYS=['played','cleared','failed','timeMs','perfect'];
+// Best stars per level: 30 digits 0-3. Merges keep the higher digit.
+export function cleanStars(value){const raw=typeof value==='string'?value:'';return Array.from({length:30},(_,i)=>{const d=raw.charCodeAt(i)-48;return d>=0&&d<=3?d:0;}).join('');}
+export function mergeStars(a,b){const x=cleanStars(a),y=cleanStars(b);return Array.from({length:30},(_,i)=>Math.max(+x[i],+y[i])).join('');}
+// Lifetime counters only grow; two devices merge by the larger value.
+function mergeStats(a,b){const out={};for(const key of STAT_KEYS)out[key]=Math.max(clamp(number(a?.[key]),0,1e13),clamp(number(b?.[key]),0,1e13));return out;}
+export function defaultProfile(now){return {level:1,completedLevels:0,sequenceLevel:1,matchingLevel:1,stars:Object.fromEntries(SOLO_GAMES.map(g=>[g,cleanStars('')])),stats:{},points:0,sequenceBest:0,matchingBestMs:null,matchingBestAttempts:null,life:lifeAt({},now),played:0,won:0,drawn:0};}
 export function mergeProfile(existing,incoming,now){
   const profile={...defaultProfile(now),...existing};
   // Offline imports may lower lives but their timestamps cannot grant recovery.
@@ -115,6 +122,10 @@ export function mergeProfile(existing,incoming,now){
   profile.level=Math.max(profile.level,clamp(number(incoming?.level,1),1,30));
   profile.completedLevels=Math.max(profile.completedLevels??0,clamp(number(incoming?.completedLevels),0,30));
   profile.sequenceBest=Math.max(profile.sequenceBest,clamp(number(incoming?.sequenceBest),0,27));
+  for(const field of ['sequenceLevel','matchingLevel'])profile[field]=Math.max(clamp(number(profile[field],1),1,30),clamp(number(incoming?.[field],1),1,30));
+  profile.stars=Object.fromEntries(SOLO_GAMES.map(g=>[g,mergeStars(profile.stars?.[g],incoming?.stars?.[g])]));
+  const stats={};for(const g of SOLO_GAMES){if(profile.stats?.[g]||incoming?.stats?.[g])stats[g]=mergeStats(profile.stats?.[g],incoming?.stats?.[g]);}
+  profile.stats=stats;
   for(const field of ['matchingBestMs','matchingBestAttempts']){const value=incoming?.[field];if(Number.isFinite(value)&&value>= (field==='matchingBestAttempts'?8:0))profile[field]=profile[field]==null?Math.floor(value):Math.min(profile[field],Math.floor(value));}
   return profile;
 }
