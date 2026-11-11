@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,7 +7,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:iqum/application/app_controller.dart';
 import 'package:iqum/data/backend.dart';
 import 'package:iqum/data/local_store.dart';
-import 'package:iqum/data/legal_documents.dart';
+import 'package:iqum/data/legal_links.dart';
 import 'package:iqum/ui/legal_screen.dart';
 import 'package:iqum/ui/theme.dart';
 
@@ -32,34 +34,26 @@ void main() {
     );
     app = AppController(store, OfflineBackend());
     await app.restore();
-    await LegalDocuments.load();
   });
   tearDown(() async {
     app.dispose();
     await store.close();
   });
-  test(
-    'all legal documents are bundled and expand publisher fields without network access',
-    () async {
-      final legal = await LegalDocuments.load();
-      expect(legal.documents.map((d) => d['id']).toSet(), {
-        'privacy',
-        'terms',
-        'guide',
-        'deletion',
-      });
-      for (final doc in legal.documents) {
-        for (final section in doc['sections'] as List) {
-          for (final text in [
-            ...(section['paragraphs'] as List? ?? []),
-            ...(section['bullets'] as List? ?? []),
-          ]) {
-            expect(legal.expand(text as String), isNot(contains('{{')));
-          }
-        }
-      }
-    },
-  );
+  test('site texts, app and server share one terms version', () {
+    final source =
+        jsonDecode(File('design/legal/tr.json').readAsStringSync()) as Map;
+    expect(source['version'], LegalLinks.version);
+    expect((source['documents'] as List).map((d) => (d as Map)['id']).toSet(), {
+      'privacy',
+      'terms',
+      'guide',
+      'deletion',
+    });
+    expect(
+      File('functions/src/index.js').readAsStringSync(),
+      contains("CURRENT_LEGAL_VERSION='${LegalLinks.version}'"),
+    );
+  });
   for (final width in [320.0, 390.0]) {
     testWidgets(
       'permanent deletion requires explicit confirmation; provider cancel preserves account at $width',
@@ -136,17 +130,18 @@ void main() {
               .onPressed,
           isNull,
         );
-        await tester.tap(find.text('Gizlilik Politikasını oku'));
-        await tester.pumpAndSettle();
-        expect(find.text('Gizlilik Politikası'), findsOneWidget);
+        if (LegalLinks.uri(LegalLinks.privacy) == null) {
+          await tester.tap(find.text('Gizlilik Politikasını oku'));
+          await tester.pump();
+          expect(find.text('Bu sayfa yakında yayında olacak.'), findsOneWidget);
+          await tester.pumpAndSettle(const Duration(seconds: 5));
+        }
         expect(tester.takeException(), isNull);
-        await tester.pageBack();
-        await tester.pumpAndSettle();
         await tester.tap(find.byType(Checkbox));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Devam et'));
         await tester.pumpAndSettle();
-        expect(result, (await LegalDocuments.load()).version);
+        expect(result, LegalLinks.version);
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Misafir kal'));
@@ -172,9 +167,14 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Hesap ve Veri Silme'));
-        await tester.pumpAndSettle();
-        expect(find.text('Uygulamadan silme'), findsOneWidget);
+        expect(find.text('Hesap ve Veri Silme'), findsOneWidget);
+        expect(find.text('Açık kaynak lisansları'), findsOneWidget);
+        if (LegalLinks.uri(LegalLinks.deletion) == null) {
+          await tester.tap(find.text('Hesap ve Veri Silme'));
+          await tester.pump();
+          expect(find.text('Bu sayfa yakında yayında olacak.'), findsOneWidget);
+          await tester.pumpAndSettle(const Duration(seconds: 5));
+        }
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());
       },

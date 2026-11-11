@@ -24,3 +24,16 @@ firestore-debug.log
 ui-debug.log
 output/
 private/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Built app packages (never committed; stores get them from CI)
+*.apk
+*.aab
+*.ipa
+
+# OS clutter
+.DS_Store
+Thumbs.db

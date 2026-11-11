@@ -64,7 +64,7 @@
           "title": "8. Hakların ve seçeneklerin",
           "paragraphs": [
             "Uygulanabilir hukuk kapsamında verilerine erişme, bilgi alma, düzeltme, silme, işlemeye itiraz etme, işlemeyi kısıtlama ve uygun olduğunda taşınabilirlik veya rızanı geri çekme taleplerini {{supportEmail}} adresine iletebilirsin. Kimliğini güvenli biçimde doğrulamak için gerekli en az bilgi istenebilir; sağlayıcı parolan veya tek kullanımlık giriş kodun istenmez. Uygulanabildiği ölçüde KVKK/GDPR kapsamındaki hakların ve yetkili veri koruma kurumuna başvuru hakkın saklıdır.",
-            "Uygulamadan Hesap → Hesabımı sil yolunu kullanabilir veya uygulamayı kurmadan {{deletionUrl}} adresinden talep gönderebilirsin. Hesaptan çıkış yapmak, uygulamayı kaldırmak veya Apple/Google bağlantısını kesmek tek başına IQUM bulut hesabını silmez."
+            "Uygulamadan Profil → Hesabımı sil yolunu kullanabilir veya uygulamayı kurmadan {{deletionUrl}} adresinden talep gönderebilirsin. Hesaptan çıkış yapmak, uygulamayı kaldırmak veya Apple/Google bağlantısını kesmek tek başına IQUM bulut hesabını silmez."
           ]
         },
         {
@@ -158,7 +158,7 @@
         {
           "title": "Uygulamadan silme",
           "paragraphs": [
-            "Hesap → Hesabımı sil yolunu aç, sonuçları incele ve onayla. Güvenlik için aynı Google/Apple hesabıyla kimliğini yeniden doğrula. İstek kabul edilince bu cihazdaki ilgili hesap kayıtları temizlenir ve oturum kapanır. İşlem durumunu uygulamadaki silme durumundan takip edebilirsin."
+            "Profil → Hesabımı sil yolunu aç, sonuçları incele ve onayla. Güvenlik için aynı Google/Apple hesabıyla kimliğini yeniden doğrula. İstek kabul edilince bu cihazdaki ilgili hesap kayıtları temizlenir ve oturum kapanır. İşlem durumunu uygulamadaki silme durumundan takip edebilirsin."
           ]
         },
         {
@@ -180,7 +180,7 @@
           "title": "Uygulamayı kurmadan talep",
           "paragraphs": [
             "{{supportEmail}} adresine 'IQUM hesap silme talebi' konusuyla yaz. Giriş yaptığın e-posta adresini veya Apple gizli e-posta adresini ve talebini belirt. Doğru hesabın silinmesini sağlamak için en az gerekli kimlik doğrulaması yapılır; parola veya tek kullanımlık giriş kodunu paylaşma.",
-            "E-posta talepleri alındığında işlemin kapsamı ve makul tamamlanma süresi bildirilir; tamamlandığında teyit gönderilir. Bu sayfadaki form e-posta uygulamanı açar; iletiyi sen göndermeden talep iletilmiş olmaz."
+            "E-posta talepleri alındığında işlemin kapsamı ve makul tamamlanma süresi bildirilir; tamamlandığında teyit gönderilir."
           ]
         }
       ]

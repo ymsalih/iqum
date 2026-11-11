@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../application/app_controller.dart';
 import '../data/backend.dart';
-import '../data/legal_documents.dart';
+import '../data/legal_links.dart';
 import 'components.dart';
+import 'licenses_screen.dart';
 import 'theme.dart';
 
 Future<void> openLegalLink(BuildContext context, Uri uri) async {
@@ -26,91 +26,17 @@ Future<void> openLegalLink(BuildContext context, Uri uri) async {
   }
 }
 
-class LegalDocumentScreen extends StatelessWidget {
-  const LegalDocumentScreen(this.id, {super.key});
-  final String id;
-  @override
-  Widget build(BuildContext context) => FutureBuilder<LegalDocuments>(
-    future: LegalDocuments.load(),
-    builder: (context, snapshot) {
-      if (!snapshot.hasData) {
-        return Scaffold(
-          appBar: AppBar(title: const Text('Bilgilendirme')),
-          body: Center(
-            child: snapshot.hasError
-                ? const Text('Metin açılamadı. Lütfen tekrar dene.')
-                : const CircularProgressIndicator(),
-          ),
-        );
-      }
-      final legal = snapshot.data!, doc = legal.document(id);
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            doc['title'] as String,
-            style: const TextStyle(fontSize: 18),
-          ),
-        ),
-        body: SelectionArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-            children: [
-              if (kDebugMode && legal.draft)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'TASLAK · Yayıncı ve iletişim bilgileri yayından önce tamamlanacak.',
-                    style: AppColors.caption,
-                  ),
-                ),
-              Text(
-                doc['intro'] as String,
-                style: const TextStyle(fontSize: 15, height: 1.6),
-              ),
-              Text('Sürüm: ${legal.version}', style: AppColors.caption),
-              for (final section in doc['sections'] as List) ...[
-                const SizedBox(height: 24),
-                Text(
-                  section['title'] as String,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                for (final paragraph in section['paragraphs'] as List? ?? [])
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      legal.expand(paragraph as String),
-                      style: const TextStyle(fontSize: 14, height: 1.7),
-                    ),
-                  ),
-                for (final bullet in section['bullets'] as List? ?? [])
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      '• ${legal.expand(bullet as String)}',
-                      style: const TextStyle(fontSize: 14, height: 1.7),
-                    ),
-                  ),
-              ],
-              for (final link in doc['links'] as List? ?? [])
-                TextButton(
-                  onPressed: () =>
-                      openLegalLink(context, Uri.parse(link['url'] as String)),
-                  child: Text(link['label'] as String),
-                ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
+/// Opens one of the published legal pages, or says it is not yet online.
+Future<void> openLegalPage(BuildContext context, String link) async {
+  final uri = LegalLinks.uri(link);
+  if (uri == null) {
+    showError(context, 'Bu sayfa yakında yayında olacak.');
+    return;
+  }
+  await openLegalLink(context, uri);
 }
 
 Future<String?> requestLegalAcceptance(BuildContext context) async {
-  final legal = await LegalDocuments.load();
-  if (!context.mounted) return null;
   var accepted = false;
   final result = await showDialog<bool>(
     context: context,
@@ -127,21 +53,11 @@ Future<String?> requestLegalAcceptance(BuildContext context) async {
               style: TextStyle(height: 1.5),
             ),
             TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => const LegalDocumentScreen('privacy'),
-                ),
-              ),
+              onPressed: () => openLegalPage(context, LegalLinks.privacy),
               child: const Text('Gizlilik Politikasını oku'),
             ),
             TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => const LegalDocumentScreen('terms'),
-                ),
-              ),
+              onPressed: () => openLegalPage(context, LegalLinks.terms),
               child: const Text('Kullanım Koşullarını oku'),
             ),
             CheckboxListTile(
@@ -173,7 +89,7 @@ Future<String?> requestLegalAcceptance(BuildContext context) async {
       ),
     ),
   );
-  return result == true ? legal.version : null;
+  return result == true ? LegalLinks.version : null;
 }
 
 class LegalCenterScreen extends ConsumerWidget {
@@ -186,36 +102,52 @@ class LegalCenterScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          for (final item in const [
-            ('privacy', 'Gizlilik Politikası', Icons.privacy_tip_outlined),
-            ('terms', 'Kullanım Koşulları', Icons.description_outlined),
-            ('guide', 'Oyun ve Hesap Bilgileri', Icons.info_outline),
-            ('deletion', 'Hesap ve Veri Silme', Icons.manage_accounts_outlined),
+          for (final (link, title, icon) in const [
+            (
+              LegalLinks.privacy,
+              'Gizlilik Politikası',
+              Icons.privacy_tip_outlined,
+            ),
+            (
+              LegalLinks.terms,
+              'Kullanım Koşulları',
+              Icons.description_outlined,
+            ),
+            (
+              LegalLinks.gameInfo,
+              'Oyun ve Hesap Bilgileri',
+              Icons.info_outline,
+            ),
+            (
+              LegalLinks.deletion,
+              'Hesap ve Veri Silme',
+              Icons.manage_accounts_outlined,
+            ),
           ])
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(item.$3),
-              title: Text(item.$2),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => LegalDocumentScreen(item.$1),
-                ),
-              ),
+              leading: Icon(icon),
+              title: Text(title),
+              subtitle: LegalLinks.uri(link) == null
+                  ? const Text('Yakında yayında', style: AppColors.caption)
+                  : null,
+              trailing: const Icon(Icons.open_in_new_rounded, size: 20),
+              onTap: () => openLegalPage(context, link),
             ),
           const Divider(height: 32),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.code),
             title: const Text('Açık kaynak lisansları'),
-            onTap: () =>
-                showLicensePage(context: context, applicationName: 'IQUM'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(builder: (_) => const LicensesScreen()),
+            ),
           ),
-          FutureBuilder<LegalDocuments>(
-            future: LegalDocuments.load(),
-            builder: (context, snapshot) {
-              final email = snapshot.data?.supportEmail ?? '';
+          Builder(
+            builder: (context) {
+              const email = LegalLinks.supportEmail;
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.support_agent),
@@ -381,12 +313,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             style: const TextStyle(height: 1.6),
           ),
           TextButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute<void>(
-                builder: (_) => const LegalDocumentScreen('deletion'),
-              ),
-            ),
+            onPressed: () => openLegalPage(context, LegalLinks.deletion),
             child: const Text('Nelerin silindiğini ve saklama bilgisini oku'),
           ),
           if (state == 'prepared')

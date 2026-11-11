@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="IQUM uygulama simgesi"><defs>
+  <radialGradient id="felt" cx="34%" cy="26%" r="88%">
+    <stop offset="0" stop-color="#23806F"/>
+    <stop offset=".55" stop-color="#145249"/>
+    <stop offset="1" stop-color="#0B2E2A"/>
+  </radialGradient></defs>
+  <rect width="1024" height="1024" fill="url(#felt)"/>
+  <circle cx="481.28" cy="471.04" r="440.32" fill="none" stroke="#FFFFFF" stroke-opacity=".05" stroke-width="20.48"/>
+  <g transform="translate(512 512) scale(7.6) translate(-50 -54)">
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 15C27 22 35 26 50 26C65 26 73 22 81 15C87 28 89 41 89 55C89 76 72 90 50 90C28 90 11 76 11 55C11 41 13 28 19 15Z" fill="#8A5410" transform="translate(0 5)"/>
+    <path d="M19 15C27 22 35 26 50 26C65 26 73 22 81 15C87 28 89 41 89 55C89 76 72 90 50 90C28 90 11 76 11 55C11 41 13 28 19 15Z" fill="#F2A93B"/>
+    <path d="M17 50C17 36 20 27 22 22" fill="none" stroke="#FFD58A" stroke-width="3.6"/>
+    <path d="M13 51C13 33 31 29 50 39C69 29 87 33 87 51C87 68 70 74 50 79C30 74 13 68 13 51Z" fill="#FFD58A"/>
+    <path d="M39 83.5l4 3.2 4-3.2M53 83.5l4 3.2 4-3.2" fill="none" stroke="#B9741A" stroke-width="2.6"/>
+    <circle cx="34" cy="53" r="17.5" fill="#FFFBF3"/>
+    <circle cx="66" cy="53" r="17.5" fill="#FFFBF3"/>
+    <path d="M50 44C47 47 47 59 50 62C53 59 53 47 50 44Z" fill="#E9DFCC"/>
+    <circle cx="34" cy="53" r="11.5" fill="#1B6B5E"/>
+    <circle cx="34" cy="53" r="7.5" fill="#0B2E2A"/>
+    <circle cx="38" cy="48.5" r="3.4" fill="#FFFBF3"/>
+    <circle cx="30.5" cy="57" r="1.6" fill="#FFFBF3"/>
+    <path d="M57 54Q66 45 75 54" fill="none" stroke="#0B2E2A" stroke-width="5"/>
+    <path d="M50 61l5.5 6.5-5.5 7.5-5.5-7.5z" fill="#B9741A"/>
+    <path d="M50 61l5.5 6.5H44.5z" fill="#FFD58A" opacity=".55"/>
+    <path d="M27 33Q34 29 42 33M58 33Q66 29 73 33" fill="none" stroke="#B9741A" stroke-width="3.4"/>
+  </g></g></svg>

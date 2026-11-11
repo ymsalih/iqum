@@ -80,7 +80,6 @@ flutter:
     - assets/art/
     - assets/brand/
     - assets/sounds/
-    - assets/legal/
     - assets/fonts/Baloo2-OFL.txt
     - assets/fonts/Nunito-OFL.txt
   fonts:

@@ -101,5 +101,25 @@ function featureGraphic() {
   await png(appIcon(), [512, 512], 'store_assets/google-play-icon.png', true);
   await png(appIcon(), [1024, 1024], 'store_assets/app-store-icon.png', true);
   await png(featureGraphic(), [1024, 500], 'store_assets/google-play-feature-graphic.png', true);
+
+  // Web brand kit: logo files for the website and anything outside the app.
+  const kit = 'store_assets/brand-kit';
+  const kitFiles = {
+    'iqum-logo.svg': logo(),
+    'iqum-logo-light.svg': logo(C.porcelain),
+    'iqum-mark.svg': mark(),
+    'iqum-owl.svg': B.splashMark(),
+    'iqum-app-icon.svg': appIcon(),
+  };
+  for (const [file, content] of Object.entries(kitFiles)) fs.writeFileSync(at(`${kit}/${file}`), content);
+  const logoWidth = (source) => Number(/viewBox="0 0 ([\d.]+) /.exec(source)[1]);
+  const wide = logo();
+  await png(wide, [1200, Math.round(1200 * 120 / logoWidth(wide))], `${kit}/iqum-logo.png`);
+  await png(logo(C.porcelain), [1200, Math.round(1200 * 120 / logoWidth(wide))], `${kit}/iqum-logo-light.png`);
+  await png(mark(), [512, 512], `${kit}/iqum-mark-512.png`);
+  await png(B.splashMark(), [512, 512], `${kit}/iqum-owl-512.png`);
+  await png(appIcon(), [180, 180], `${kit}/apple-touch-icon.png`, true);
+  for (const size of [16, 32, 48, 192, 512]) await png(mark(), [size, size], `${kit}/favicon-${size}.png`);
+
   console.log('Brand: mark, owl, card back, app/adaptive/iOS/store icons, splash images and feature graphic regenerated.');
 })().catch((e) => { console.error(e); process.exitCode = 1; });
