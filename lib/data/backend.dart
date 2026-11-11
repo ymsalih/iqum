@@ -11,6 +11,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../domain/models.dart';
 import '../domain/game_clock.dart';
 import 'app_check.dart';
+import 'firebase_config.dart';
 
 class Account {
   const Account(this.uid, this.name);
@@ -86,35 +87,29 @@ class FirebaseBackend implements Backend {
   GoogleSignIn get google => _google ??= GoogleSignIn(
     clientId:
         _platform == TargetPlatform.iOS &&
-            const String.fromEnvironment('GOOGLE_IOS_CLIENT_ID').isNotEmpty
-        ? const String.fromEnvironment('GOOGLE_IOS_CLIENT_ID')
+            FirebaseConfig.googleIosClientId.isNotEmpty
+        ? FirebaseConfig.googleIosClientId
         : null,
-    serverClientId: const String.fromEnvironment('GOOGLE_WEB_CLIENT_ID').isEmpty
+    serverClientId: FirebaseConfig.googleWebClientId.isEmpty
         ? null
-        : const String.fromEnvironment('GOOGLE_WEB_CLIENT_ID'),
+        : FirebaseConfig.googleWebClientId,
     scopes: const ['email'],
   );
   final GameClock clock = GameClock();
   static const emulator = bool.fromEnvironment('USE_FIREBASE_EMULATORS');
   static Future<Backend> initialize() async {
     try {
-      const project = String.fromEnvironment('FIREBASE_PROJECT_ID');
+      const project = FirebaseConfig.projectId;
       if (project.isNotEmpty) {
         await Firebase.initializeApp(
           options: FirebaseOptions(
-            apiKey:
-                Platform.isIOS &&
-                    const String.fromEnvironment(
-                      'FIREBASE_IOS_API_KEY',
-                    ).isNotEmpty
-                ? const String.fromEnvironment('FIREBASE_IOS_API_KEY')
-                : const String.fromEnvironment('FIREBASE_API_KEY'),
+            apiKey: Platform.isIOS && FirebaseConfig.iosApiKey.isNotEmpty
+                ? FirebaseConfig.iosApiKey
+                : FirebaseConfig.apiKey,
             appId: Platform.isIOS
-                ? const String.fromEnvironment('FIREBASE_IOS_APP_ID')
-                : const String.fromEnvironment('FIREBASE_ANDROID_APP_ID'),
-            messagingSenderId: const String.fromEnvironment(
-              'FIREBASE_MESSAGING_SENDER_ID',
-            ),
+                ? FirebaseConfig.iosAppId
+                : FirebaseConfig.androidAppId,
+            messagingSenderId: FirebaseConfig.messagingSenderId,
             projectId: project,
           ),
         );

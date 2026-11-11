@@ -24,11 +24,13 @@ flutter pub get
 flutter run
 ```
 
-Canlı servisler için `config/firebase.example.json` kullanılır (ayrıntılı kurulum ve App Check notları geliştiricinin yerel `docs/` klasöründedir; depoya eklenmez):
+Canlı Firebase projesinin (`iqum-4734b`) bağlantı bilgileri uygulamaya gömülüdür: `lib/data/firebase_config.dart`, `android/app/google-services.json` ve `ios/Runner/GoogleService-Info.plist`. Bunlar parola değil, her kurulu uygulamada bulunan kimliklerdir; veriyi Firestore kuralları, Cloud Functions kontrolleri, Firebase Authentication ve App Check korur. Bu yüzden ek parametre gerekmez:
 
 ```sh
-flutter run --dart-define-from-file=config/firebase.json
+flutter run
 ```
+
+Başka bir projeye veya emülatöre bağlanmak için aynı adlarla `--dart-define` ya da `config/firebase.example.json` örneğinden bir dosyayla `--dart-define-from-file` verilebilir; verilen değer gömülü değerin yerine geçer.
 
 Firebase özel hizmet hesabı anahtarlarını veya Apple özel anahtarlarını mobil yapılandırmaya koymayın. Google OAuth istemci kimlikleri, Firebase uygulama kimlikleri ve Android imzaları kullanıcıya ait projeden gelmelidir.
 

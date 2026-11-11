@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "688320483908",
+    "project_id": "iqum-4734b",
+    "storage_bucket": "iqum-4734b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:688320483908:android:4b49fc0dd471652ea2a211",
+        "android_client_info": {
+          "package_name": "com.iqum.iqum"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "688320483908-v58cmllib41otd56b86bdup62e39q50b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.iqum.iqum",
+            "certificate_hash": "7aef2ba0fb9c2c5c90099705c76fc5a1e32de5a7"
+          }
+        },
+        {
+          "client_id": "688320483908-dhu2uav2ju8qkr0qjv19ta4l154235mr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBD_hTi0-0IkMo7EW7dgX0CTSOYm3rt6NE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "688320483908-dhu2uav2ju8qkr0qjv19ta4l154235mr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

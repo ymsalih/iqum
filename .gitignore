@@ -10,9 +10,8 @@ docs/
 *.log
 *.iml
 .idea/
+# Optional local override for --dart-define-from-file (defaults are in lib/data/firebase_config.dart)
 config/firebase.json
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
 android/key.properties
 *.jks
 *.keystore
