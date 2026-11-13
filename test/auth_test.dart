@@ -10,13 +10,34 @@ class _User extends Fake implements User {
   List<String> providers = ['google.com'];
   final events = <String>[];
   FirebaseAuthException? reauthError;
+  bool verified = true;
+  String name = 'Test Oyuncu';
+  AuthCredential? reauthCredential;
+  @override
+  bool get emailVerified => verified;
+  @override
+  String? get email => 'oyuncu@example.com';
+  @override
+  Future<void> reload() async => events.add('reload');
+  @override
+  Future<void> updateDisplayName(String? displayName) async {
+    name = displayName ?? '';
+    events.add('name:$displayName');
+  }
+
+  @override
+  Future<void> sendEmailVerification([ActionCodeSettings? settings]) async =>
+      events.add('verify-mail');
   @override
   List<UserInfo> get providerData => providers.map(_Provider.new).toList();
   @override
   Future<UserCredential> reauthenticateWithCredential(
     AuthCredential credential,
   ) async {
-    events.add('google-reauth');
+    reauthCredential = credential;
+    events.add(
+      credential.providerId == 'password' ? 'password-reauth' : 'google-reauth',
+    );
     if (reauthError != null) throw reauthError!;
     return _Credential();
   }
@@ -39,10 +60,16 @@ class _User extends Fake implements User {
   @override
   String get uid => 'google-user';
   @override
-  String get displayName => 'Test Oyuncu';
+  String get displayName => name;
 }
 
 class _Credential extends Fake implements UserCredential {}
+
+class _EmailCredential extends Fake implements UserCredential {
+  _EmailCredential(this.user);
+  @override
+  final User user;
+}
 
 class _Provider extends Fake implements UserInfo {
   _Provider(this.providerId);
@@ -95,6 +122,44 @@ class _Auth extends Fake implements FirebaseAuth {
   Future<void> signOut() async {
     signed = null;
   }
+
+  // E-mail accounts: one test account whose verification state is set.
+  _User? emailUser;
+  String? language, resetSentTo;
+  int emailSignIns = 0;
+  @override
+  Future<void> setLanguageCode(String? languageCode) async =>
+      language = languageCode;
+  @override
+  Future<UserCredential> createUserWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    emailUser = _User()
+      ..providers = ['password']
+      ..verified = false;
+    signed = emailUser;
+    return _EmailCredential(emailUser!);
+  }
+
+  @override
+  Future<UserCredential> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    emailSignIns++;
+    if (password != 'dogru-sifre1') {
+      throw FirebaseAuthException(code: 'invalid-credential');
+    }
+    signed = emailUser;
+    return _EmailCredential(emailUser!);
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail({
+    required String email,
+    ActionCodeSettings? actionCodeSettings,
+  }) async => resetSentTo = email;
 }
 
 class _Tokens extends Fake implements GoogleSignInAuthentication {
@@ -266,4 +331,94 @@ void main() {
       );
     },
   );
+  group('E-mail accounts', () {
+    test(
+      'registration names the account, mails a link and signs out',
+      () async {
+        await backend.registerWithEmail(
+          name: ' Ada Lovelace ',
+          email: ' ada@example.com ',
+          password: 'dogru-sifre1',
+        );
+        expect(auth.language, 'tr');
+        expect(auth.emailUser!.events, ['name:Ada Lovelace', 'verify-mail']);
+        expect(auth.currentUser, isNull);
+        expect(backend.account, isNull);
+      },
+    );
+    test('an unverified address cannot sign in and stays signed out', () async {
+      await backend.registerWithEmail(
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        password: 'dogru-sifre1',
+      );
+      await expectLater(
+        backend.signInWithEmail('ada@example.com', 'dogru-sifre1'),
+        throwsA(isA<EmailNotVerified>()),
+      );
+      expect(auth.currentUser, isNull);
+      expect(backend.account, isNull);
+      // Even if Firebase still held the user, the app would not treat an
+      // unverified e-mail account as signed in.
+      auth.signed = auth.emailUser;
+      expect(backend.account, isNull);
+    });
+    test('a verified address signs in with a fresh token', () async {
+      await backend.registerWithEmail(
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        password: 'dogru-sifre1',
+      );
+      auth.emailUser!.verified = true;
+      expect(
+        await backend.signInWithEmail('ada@example.com', 'dogru-sifre1'),
+        isTrue,
+      );
+      expect(backend.account?.name, 'Ada');
+      expect(backend.usesPassword, isTrue);
+      expect(
+        auth.emailUser!.events,
+        containsAllInOrder(['reload', 'refresh:true']),
+      );
+    });
+    test('a wrong password reads as a plain message', () async {
+      await backend.registerWithEmail(
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        password: 'dogru-sifre1',
+      );
+      try {
+        await backend.signInWithEmail('ada@example.com', 'yanlis');
+        fail('should not sign in');
+      } catch (error) {
+        expect(friendlyError(error), 'E-posta veya şifre hatalı.');
+      }
+    });
+    test('verification can be re-sent and reset links are requested', () async {
+      await backend.registerWithEmail(
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        password: 'dogru-sifre1',
+      );
+      auth.emailUser!.events.clear();
+      await backend.resendVerification('ada@example.com', 'dogru-sifre1');
+      expect(auth.emailUser!.events, ['verify-mail']);
+      expect(auth.currentUser, isNull);
+      await backend.sendPasswordReset(' ada@example.com ');
+      expect(auth.resetSentTo, 'ada@example.com');
+    });
+    test('deleting an e-mail account asks for its password', () async {
+      final current = _User()..providers = ['password'];
+      auth.signed = current;
+      expect(await backend.reauthenticateForDeletion(), isFalse);
+      expect(current.events, isEmpty);
+      expect(
+        await backend.reauthenticateForDeletion(password: 'dogru-sifre1'),
+        isTrue,
+      );
+      expect(current.events, ['password-reauth', 'refresh:true']);
+      expect(current.reauthCredential?.providerId, 'password');
+      expect(google.logouts, 0);
+    });
+  });
 }

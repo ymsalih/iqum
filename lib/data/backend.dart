@@ -18,12 +18,35 @@ class Account {
   final String uid, name;
 }
 
+/// An e-mail account tried to sign in before confirming its address.
+/// Such accounts are never signed in: the server also refuses them.
+class EmailNotVerified implements Exception {
+  const EmailNotVerified(this.email);
+  final String email;
+}
+
 abstract class Backend {
   bool get available;
   Account? get account;
   Future<bool> signIn(bool apple);
+
+  /// Creates an e-mail account, sends the verification link and signs out:
+  /// the player can sign in only after confirming the address.
+  Future<void> registerWithEmail({
+    required String name,
+    required String email,
+    required String password,
+  });
+
+  /// Signs in a verified e-mail account; throws [EmailNotVerified] otherwise.
+  Future<bool> signInWithEmail(String email, String password);
+  Future<void> resendVerification(String email, String password);
+  Future<void> sendPasswordReset(String email);
+
+  /// The signed-in account uses e-mail + password (deletion asks for it).
+  bool get usesPassword;
   Future<void> signOut();
-  Future<bool> reauthenticateForDeletion();
+  Future<bool> reauthenticateForDeletion({String? password});
   Future<Map<String, dynamic>> call(
     String name, [
     Map<String, dynamic> data = const {},
@@ -52,10 +75,29 @@ class OfflineBackend implements Backend {
   Future<bool> signIn(bool apple) async => throw StateError(
     'Çevrimiçi oyunlar şu an kullanılamıyor. Antrenmanlara devam edebilirsin.',
   );
+  static const _offline =
+      'Hesap işlemleri için internet bağlantısı gerekir. Antrenmanlara devam edebilirsin.';
+  @override
+  Future<void> registerWithEmail({
+    required String name,
+    required String email,
+    required String password,
+  }) async => throw StateError(_offline);
+  @override
+  Future<bool> signInWithEmail(String email, String password) async =>
+      throw StateError(_offline);
+  @override
+  Future<void> resendVerification(String email, String password) async =>
+      throw StateError(_offline);
+  @override
+  Future<void> sendPasswordReset(String email) async =>
+      throw StateError(_offline);
+  @override
+  bool get usesPassword => false;
   @override
   Future<void> signOut() async {}
   @override
-  Future<bool> reauthenticateForDeletion() async =>
+  Future<bool> reauthenticateForDeletion({String? password}) async =>
       throw StateError('Hesabını silmek için internet bağlantısı gerekir.');
   @override
   Future<Map<String, dynamic>> call(
@@ -153,9 +195,78 @@ class FirebaseBackend implements Backend {
   @override
   Account? get account {
     final u = auth.currentUser;
-    return u == null
+    // An unverified e-mail account is never treated as signed in.
+    return u == null || !_verified(u)
         ? null
         : Account(u.uid, u.displayName?.split(' ').first ?? 'Oyuncu');
+  }
+
+  static bool _isPassword(User u) =>
+      u.providerData.any((p) => p.providerId == 'password');
+  static bool _verified(User u) => !_isPassword(u) || u.emailVerified;
+
+  @override
+  bool get usesPassword {
+    final u = auth.currentUser;
+    return u != null && _isPassword(u);
+  }
+
+  @override
+  Future<void> registerWithEmail({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    await auth.setLanguageCode('tr');
+    final credential = await auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    try {
+      await credential.user!.updateDisplayName(name.trim());
+      await credential.user!.sendEmailVerification();
+    } finally {
+      await auth.signOut();
+    }
+  }
+
+  @override
+  Future<bool> signInWithEmail(String email, String password) async {
+    final credential = await auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    final user = credential.user!;
+    await user.reload();
+    if (!(auth.currentUser?.emailVerified ?? false)) {
+      await auth.signOut();
+      throw EmailNotVerified(email.trim());
+    }
+    // A fresh token carries email_verified=true for the server checks.
+    await auth.currentUser!.getIdToken(true);
+    return true;
+  }
+
+  @override
+  Future<void> resendVerification(String email, String password) async {
+    await auth.setLanguageCode('tr');
+    final credential = await auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    try {
+      if (!credential.user!.emailVerified) {
+        await credential.user!.sendEmailVerification();
+      }
+    } finally {
+      await auth.signOut();
+    }
+  }
+
+  @override
+  Future<void> sendPasswordReset(String email) async {
+    await auth.setLanguageCode('tr');
+    await auth.sendPasswordResetEmail(email: email.trim());
   }
 
   @override
@@ -222,12 +333,21 @@ class FirebaseBackend implements Backend {
   }
 
   @override
-  Future<bool> reauthenticateForDeletion() async {
+  Future<bool> reauthenticateForDeletion({String? password}) async {
     final current = auth.currentUser;
     if (current == null) throw StateError('Önce hesabına giriş yap.');
     final providers = current.providerData.map((p) => p.providerId).toSet();
     try {
-      if (_platform == TargetPlatform.iOS && providers.contains('apple.com')) {
+      if (providers.contains('password')) {
+        if (password == null || password.isEmpty) return false;
+        await current.reauthenticateWithCredential(
+          EmailAuthProvider.credential(
+            email: current.email ?? '',
+            password: password,
+          ),
+        );
+      } else if (_platform == TargetPlatform.iOS &&
+          providers.contains('apple.com')) {
         final credential = await current.reauthenticateWithProvider(
           AppleAuthProvider(),
         );
@@ -421,6 +541,18 @@ String friendlyError(Object error) {
       'user-mismatch' =>
         'Silmek istediğin hesaba ait giriş yöntemini ve aynı hesabı seç.',
       'requires-recent-login' => 'Bu işlem için kimliğini yeniden doğrula.',
+      'email-already-in-use' =>
+        'Bu e-posta adresiyle zaten bir hesap var. Giriş yapmayı dene.',
+      'invalid-email' => 'E-posta adresi geçerli görünmüyor.',
+      'weak-password' =>
+        'Şifre çok zayıf. En az 8 karakter, harf ve rakam kullan.',
+      'wrong-password' ||
+      'user-not-found' ||
+      'invalid-credential' ||
+      'INVALID_LOGIN_CREDENTIALS' => 'E-posta veya şifre hatalı.',
+      'missing-password' => 'Şifreni yaz.',
+      'too-many-requests' =>
+        'Çok fazla deneme yapıldı. Biraz bekleyip tekrar dene.',
       _ => 'Giriş tamamlanamadı. Lütfen tekrar dene.',
     };
   }

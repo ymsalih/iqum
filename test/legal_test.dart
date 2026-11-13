@@ -16,7 +16,7 @@ class _AccountBackend extends OfflineBackend {
   @override
   Account? get account => const Account('test-account', 'Oyuncu');
   @override
-  Future<bool> reauthenticateForDeletion() async {
+  Future<bool> reauthenticateForDeletion({String? password}) async {
     reauthentications++;
     return false;
   }

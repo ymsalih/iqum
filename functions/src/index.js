@@ -9,6 +9,7 @@ import {onTaskDispatched} from 'firebase-functions/v2/tasks';
 import {createMatch,join,ready,advance,move,leave,heartbeat as touch,nextEvent,GameError,defaultProfile,mergeProfile,lifeAt} from './engine.js';
 import {appCheckPolicy,assertAppIdentity} from './app-check.js';
 import {createAccountDeletion} from './account-deletion.js';
+import {accountProblem} from './auth-policy.js';
 
 initializeApp();
 const db=getFirestore();
@@ -27,7 +28,9 @@ async function transaction(update){
   }
 }
 function user(request){
-  if(!request.auth||request.auth.token.firebase?.sign_in_provider==='anonymous')throw new HttpsError('unauthenticated','Devam etmek için hesabına giriş yap.');
+  // Unverified e-mail accounts get no answer from any game function.
+  const problem=accountProblem(request.auth?.token);
+  if(problem)throw new HttpsError(problem.code,problem.message);
   return {uid:request.auth.uid,name:String(request.auth.token.name??'Oyuncu').trim().slice(0,24)||'Oyuncu',authTime:Number(request.auth.token.auth_time)*1000};
 }
 async function actorTransaction(uid,update){

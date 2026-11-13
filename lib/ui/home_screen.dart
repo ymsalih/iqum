@@ -12,6 +12,7 @@ import 'duel_screen.dart';
 import 'solo_screen.dart';
 import 'theme.dart';
 import 'legal_screen.dart';
+import 'email_auth_screen.dart';
 import 'responsive.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -900,6 +901,20 @@ class AccountView extends ConsumerWidget {
                 onPressed: app.busy ? null : () => login(context, ref, true),
               ),
             ],
+            const SizedBox(height: 10),
+            IqumButton(
+              'E-posta ile devam et',
+              secondary: true,
+              icon: Icons.mail_rounded,
+              onPressed: app.busy
+                  ? null
+                  : () => Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => EmailAuthScreen(onSignedIn: onSignedIn),
+                      ),
+                    ),
+            ),
             const SizedBox(height: 12),
             const Text(
               'Misafir ilerlemen girişten sonra korunur.',

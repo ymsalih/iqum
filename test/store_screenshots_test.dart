@@ -69,11 +69,7 @@ void main() {
         completedLevels: 6,
         sequenceLevel: 6,
         matchingLevel: 9,
-        stars: {
-          'path': '332323',
-          'sequence': '33322',
-          'matching': '33232333',
-        },
+        stars: {'path': '332323', 'sequence': '33322', 'matching': '33232333'},
         stats: const {
           'path': GameStats(played: 9, cleared: 6, failed: 3, perfect: 3),
           'sequence': GameStats(
@@ -96,11 +92,7 @@ void main() {
         haptics: false,
       ),
     );
-    controller = AppController(
-      store,
-      OfflineBackend(),
-      clock: () => fakeNow,
-    );
+    controller = AppController(store, OfflineBackend(), clock: () => fakeNow);
     await controller.restore();
   });
   tearDown(() async => store.close());

@@ -243,7 +243,45 @@ class AppController extends ChangeNotifier {
     if (account != null) unawaited(sync());
   }
 
-  Future<bool> signIn(bool apple, {String? legalVersion}) async {
+  /// E-mail sign-in: same account flow as Google/Apple once the address is
+  /// verified; throws [EmailNotVerified] before that.
+  Future<bool> signInWithEmail(
+    String email,
+    String password, {
+    String? legalVersion,
+  }) => signIn(
+    false,
+    legalVersion: legalVersion,
+    using: () => backend.signInWithEmail(email, password),
+  );
+
+  /// Creates an e-mail account and sends its verification link. The player
+  /// stays a guest until they verify and sign in.
+  Future<void> registerWithEmail({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    if (busy) return;
+    busy = true;
+    notifyListeners();
+    try {
+      await backend.registerWithEmail(
+        name: name,
+        email: email,
+        password: password,
+      );
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> signIn(
+    bool apple, {
+    String? legalVersion,
+    Future<bool> Function()? using,
+  }) async {
     if (busy) return false;
     if (deletion != null && deletion?['state'] != 'complete') {
       throw StateError(
@@ -258,7 +296,7 @@ class AppController extends ChangeNotifier {
         deletion = null;
       }
       final previousScope = scope, snapshot = progress;
-      if (!await backend.signIn(apple)) return false;
+      if (!await (using ?? () => backend.signIn(apple))()) return false;
       final uid = account!.uid;
       if (legalVersion != null) {
         await store.setMetadata('terms:$uid', legalVersion);
@@ -455,7 +493,7 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteAccount() async {
+  Future<bool> deleteAccount({String? password}) async {
     if (busy) return false;
     final uid = backend.account?.uid;
     if (uid == null) throw StateError('Önce hesabına giriş yap.');
@@ -463,7 +501,9 @@ class AppController extends ChangeNotifier {
     notifyListeners();
     try {
       if (_syncing != null) await _syncing;
-      if (!await backend.reauthenticateForDeletion()) return false;
+      if (!await backend.reauthenticateForDeletion(password: password)) {
+        return false;
+      }
       deletion = deletion?['uid'] == uid
           ? deletion
           : {'uid': uid, 'requestId': newId(), 'state': 'prepared'};

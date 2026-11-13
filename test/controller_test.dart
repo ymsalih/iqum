@@ -16,7 +16,8 @@ class FakeBackend extends OfflineBackend {
       failSignOut = false;
   String deletionState = 'pending';
   @override
-  Future<bool> reauthenticateForDeletion() async => !cancelReauth;
+  Future<bool> reauthenticateForDeletion({String? password}) async =>
+      !cancelReauth;
   final calls = <Map<String, dynamic>>[];
   final profiles = <String, PlayerProgress>{};
   final applied = <String>{};

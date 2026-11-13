@@ -342,8 +342,10 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                 style: TextStyle(fontSize: 14),
               ),
             ),
-            const Text(
-              'Aynı Google/Apple hesabıyla kimliğini yeniden doğrulaman istenecek. İşlemi iptal edebilirsin.',
+            Text(
+              app.backend.usesPassword
+                  ? 'Güvenlik için şifreni yeniden girmen istenecek. İşlemi iptal edebilirsin.'
+                  : 'Aynı Google/Apple hesabıyla kimliğini yeniden doğrulaman istenecek. İşlemi iptal edebilirsin.',
               style: AppColors.caption,
             ),
             const SizedBox(height: 16),
@@ -355,7 +357,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               onPressed: confirmed && !app.busy
                   ? () async {
                       try {
-                        await app.deleteAccount();
+                        String? password;
+                        if (app.backend.usesPassword) {
+                          password = await askPassword(context);
+                          if (password == null) return;
+                        }
+                        await app.deleteAccount(password: password);
                       } catch (error) {
                         if (context.mounted) {
                           showError(context, friendlyError(error));
@@ -401,4 +408,48 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
       ),
     );
   }
+}
+
+/// Asks an e-mail account for its password before a sensitive action.
+Future<String?> askPassword(BuildContext context) => showDialog<String>(
+  context: context,
+  builder: (_) => const _PasswordDialog(),
+);
+
+class _PasswordDialog extends StatefulWidget {
+  const _PasswordDialog();
+  @override
+  State<_PasswordDialog> createState() => _PasswordDialogState();
+}
+
+class _PasswordDialogState extends State<_PasswordDialog> {
+  final controller = TextEditingController();
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text('Şifreni gir', style: AppColors.display(22)),
+    content: TextField(
+      controller: controller,
+      obscureText: true,
+      autofocus: true,
+      autofillHints: const [AutofillHints.password],
+      decoration: const InputDecoration(labelText: 'Şifre'),
+      onSubmitted: (value) => Navigator.pop(context, value),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Vazgeç'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, controller.text),
+        child: const Text('Doğrula'),
+      ),
+    ],
+  );
 }

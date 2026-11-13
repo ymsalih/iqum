@@ -140,10 +140,8 @@ class SequenceGame {
   GamePhase phase = GamePhase.ready;
   int? deadline, lastTick;
   bool wrong = false, timedOut = false;
-  late final List<String> pattern = (animals.keys.toList()
-        ..shuffle(Random(seed)))
-      .take(spec.count)
-      .toList();
+  late final List<String> pattern =
+      (animals.keys.toList()..shuffle(Random(seed))).take(spec.count).toList();
   int get stars => starsAfter(fails);
 
   void start(int now) {
