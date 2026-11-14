@@ -195,9 +195,9 @@
           "title": "Üç oyun",
           "paragraphs": [
             "Üç tek oyunculu oyunun her biri 30 leveldir; bir level geçilince sıradaki açılır ve geçilen her level yeniden oynanabilir. Her level 1–3 yıldız verir; en iyi yıldızın korunur.",
-            "Sıra Hafızası'nda kartların yerini ve sırasını ezberle, sonra görsel panelden sıradaki hayvanı seç. Kart sayısı 3'ten 12'ye çıkar, ezber süresi kısalır. Yanlış cevap veya biten süre leveli yakar. Hatasız geçiş 3 yıldızdır.",
+            "Sıra Hafızası'nda kartların yerini ve sırasını ezberle, sonra görsel panelden sıradaki hayvanı seç. Kart sayısı 4'ten 12'ye çıkar ve her levelde kart başına ezber süresi kısalır. Yanlış cevap veya biten süre leveli yakar. Hatasız geçiş 3 yıldızdır.",
             "Kart Eşleştirme'de aynı hayvan çiftlerini bul. Tahta 6 karttan 24 karta büyür. Bir hamle iki kart açmaktır ve hamle hakkın tahtadaki kart sayısının 1,5 katıdır; hak biterse level yanar. Az hamle daha çok yıldız getirir.",
-            "Hafıza Yolu'nda güvenli yol bir kartta gösterilir. Kart kalkınca kapalı karoları en alttan başlayıp sıraları atlamadan çevir. Yanlış adım aynı yolu baştan denemeye döndürür. Hatasız geçiş 3 yıldızdır."
+            "Hafıza Yolu'nda güvenli yol, level açılınca tahtada yeşil karolarla gösterilir; her sıranın güvenli karosu bir öncekinden ayrı bir sütundadır. Ezber süresi tahtadaki karo sayısının yarısı kadardır (3×3 tahtada 4 saniye). Süre bitince karolar kapanır; en alttan başlayıp sıraları atlamadan çevir. Tahta her levelde büyür. Yanlış adım aynı yolu baştan denemeye döndürür. Hatasız geçiş 3 yıldızdır."
           ]
         },
         {

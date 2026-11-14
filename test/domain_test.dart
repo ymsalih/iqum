@@ -36,26 +36,38 @@ void main() {
       expect(merged.nextAt, 120000);
     });
   });
-  test('all thirty levels are stable, connected and get harder', () {
-    var oldPreview = 10000, oldCells = 0;
+  test('every path level is harder and its rows are independent', () {
+    (int, int)? previous;
     for (var n = 1; n <= 30; n++) {
       final level = LevelDefinition(n), again = LevelDefinition(n);
+      // Same route every attempt at a level.
       expect(level.route, again.route);
       expect(level.route.length, level.rows);
-      expect(level.previewMs, lessThan(oldPreview));
-      expect(level.rows * level.columns, greaterThanOrEqualTo(oldCells));
+      // Harder than the level before: more steps, or as many on a wider
+      // board.
+      final now = (level.rows, level.columns);
+      if (previous != null) {
+        expect(
+          now.$1 > previous.$1 ||
+              (now.$1 == previous.$1 && now.$2 > previous.$2),
+          isTrue,
+          reason: 'level $n',
+        );
+      }
+      previous = now;
+      // Study time: half a second per tile, rounded down.
+      expect(level.previewMs, level.rows * level.columns ~/ 2 * 1000);
       for (var r = 0; r < level.rows; r++) {
         expect(level.route[r], inInclusiveRange(0, level.columns - 1));
         if (r > 0) {
-          expect(
-            (level.route[r] - level.route[r - 1]).abs(),
-            lessThanOrEqualTo(1),
-          );
+          final jump = (level.route[r] - level.route[r - 1]).abs();
+          expect(jump, greaterThanOrEqualTo(level.columns < 4 ? 1 : 2));
         }
       }
-      oldPreview = level.previewMs;
-      oldCells = level.rows * level.columns;
     }
+    expect((LevelDefinition(1).columns, LevelDefinition(1).rows), (3, 3));
+    expect(LevelDefinition(1).previewMs, 4000);
+    expect((LevelDefinition(30).columns, LevelDefinition(30).rows), (5, 12));
   });
   group('Matching levels', () {
     test('board grows from 3 to 12 pairs with 1.5 moves per card', () {
@@ -132,17 +144,18 @@ void main() {
     });
   });
   group('Sequence levels', () {
-    test('cards grow from 3 to 12 and study time per card shrinks', () {
-      var count = 0;
+    test('every sequence level is harder than the one before', () {
+      var count = 0, perCard = 1 << 30;
       for (var n = 1; n <= levelCount; n++) {
         final level = SequenceLevel(n);
         expect(level.count, greaterThanOrEqualTo(count));
+        expect(level.msPerCard, lessThan(perCard));
         expect(level.columns * level.rows, greaterThanOrEqualTo(level.count));
         count = level.count;
+        perCard = level.msPerCard;
       }
-      expect(SequenceLevel(1).count, 3);
+      expect(SequenceLevel(1).count, 4);
       expect(SequenceLevel(30).count, 12);
-      expect(SequenceLevel(3).previewMs, lessThan(SequenceLevel(1).previewMs));
     });
     test('a wrong animal fails the level', () {
       final game = SequenceGame(level: 10, seed: 10);

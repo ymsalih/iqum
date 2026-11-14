@@ -176,9 +176,8 @@ void main() {
 
       // Memory Path: the route on its own card, before it is taken away.
       await open(const SoloScreen(GameKind.path, level: 7));
-      await tester.ensureVisible(find.text('Yolu göster'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Yolu göster'));
+      // The route shows by itself after the 3-2-1 countdown.
+      await wait(const Duration(milliseconds: 2200));
       await io();
       await wait(const Duration(milliseconds: 700));
       await shot('hafiza-yolu');
@@ -186,9 +185,8 @@ void main() {
 
       // Sequence Memory: the study phase.
       await open(const SoloScreen(GameKind.sequence, level: 6));
-      await tester.ensureVisible(find.text('Kartları göster'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Kartları göster'));
+      // The cards show by itself after the 3-2-1 countdown.
+      await wait(const Duration(milliseconds: 2200));
       await io();
       await wait(const Duration(milliseconds: 900));
       await shot('sira-hafizasi');

@@ -352,7 +352,10 @@ class PlayerProgress {
 class SequenceLevel {
   SequenceLevel(this.number) : assert(number >= 1 && number <= levelCount);
   final int number;
-  int get count => min(12, 3 + (number - 1) ~/ 3);
+
+  /// Every level is harder than the one before: the cards grow from 4 to
+  /// 12 and the study time per card shrinks on every level (1.2 → 0.62 s).
+  int get count => 4 + (number - 1) * 8 ~/ 29;
   int get columns => switch (count) {
     3 => 3,
     4 => 2,
@@ -360,8 +363,9 @@ class SequenceLevel {
     _ => 4,
   };
   int get rows => (count / columns).ceil();
-  int get previewMs => 1000 + count * const [1000, 850, 700][(number - 1) % 3];
-  int get answerMs => count * 5000;
+  int get msPerCard => 1200 - (number - 1) * 20;
+  int get previewMs => count * msPerCard;
+  int get answerMs => count * 4000;
 }
 
 /// Card Matching level: board grows from 3 to 12 pairs. A move is one pair
@@ -396,25 +400,33 @@ class MatchingLevel {
 class LevelDefinition {
   LevelDefinition(this.number) : assert(number >= 1 && number <= 30);
   final int number;
-  int get columns => number <= 10
-      ? 3
-      : number <= 20
-      ? 4
-      : 5;
-  int get rows => number <= 5
-      ? 4
-      : number <= 15
-      ? 5
-      : number <= 25
-      ? 6
-      : 8;
-  int get previewMs => max(3000, 9000 - (number - 1) * 200);
+
+  /// Every level is harder than the one before: each three levels add a
+  /// row (one more step to remember) and within them the board widens
+  /// from 3 to 5 columns (more places a step can hide). 3×3 … 5×12.
+  int get columns => 3 + (number - 1) % 3;
+  int get rows => 3 + (number - 1) ~/ 3;
+
+  /// Study time: half a second per tile, rounded down to whole seconds
+  /// (3×3 → 4 s, 5×12 → 30 s).
+  int get previewMs => columns * rows ~/ 2 * 1000;
+
+  /// The safe tile of each row, bottom to top. Rows are independent: a
+  /// step never stays in the same column, and on boards of 4–5 columns it
+  /// always jumps at least one column, so the route never reads as a line.
+  /// Seeded by the level number: a retry shows the same route.
   List<int> get route {
-    var c = number % columns;
-    return List.generate(rows, (r) {
-      if (r > 0) c = (c + (number * 7 + r * 5) % 3 - 1).clamp(0, columns - 1);
-      return c;
-    });
+    final rng = Random(number * 7919 + 17);
+    final steps = <int>[rng.nextInt(columns)];
+    for (var r = 1; r < rows; r++) {
+      final previous = steps.last;
+      final choices = [
+        for (var c = 0; c < columns; c++)
+          if (c != previous && (columns < 4 || (c - previous).abs() >= 2)) c,
+      ];
+      steps.add(choices[rng.nextInt(choices.length)]);
+    }
+    return steps;
   }
 }
 

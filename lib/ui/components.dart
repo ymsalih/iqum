@@ -581,17 +581,21 @@ class PathTile extends StatefulWidget {
     this.stepped = false,
     this.wrong = false,
     this.active = false,
+    this.lit = false,
     this.onTap,
   });
   final int row, column;
   final bool stepped, wrong, active;
+
+  /// Shown face up in green while the route is being studied.
+  final bool lit;
   final VoidCallback? onTap;
   @override
   State<PathTile> createState() => _PathTileState();
 }
 
 class _PathTileState extends State<PathTile> with TickerProviderStateMixin {
-  bool get _open => widget.stepped || widget.wrong;
+  bool get _open => widget.stepped || widget.wrong || widget.lit;
   late final AnimationController _flip = AnimationController(
     vsync: this,
     duration: MotionTokens.flip,
@@ -606,13 +610,14 @@ class _PathTileState extends State<PathTile> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(PathTile old) {
     super.didUpdateWidget(old);
-    final wasOpen = old.stepped || old.wrong;
+    final wasOpen = old.stepped || old.wrong || old.lit;
     if (wasOpen != _open) {
       if (_reduced) {
         _flip.value = _open ? 1 : 0;
       } else {
         _flip.animateTo(_open ? 1 : 0, curve: Curves.easeInOutCubic);
-        if (_open) _fx.forward(from: 0);
+        // Steps react after landing; the study reveal just turns over.
+        if (_open && !widget.lit) _fx.forward(from: 0);
       }
     }
   }
@@ -646,9 +651,17 @@ class _PathTileState extends State<PathTile> with TickerProviderStateMixin {
       alignment: Alignment.center,
       child: front
           ? Icon(
-              w.wrong ? Icons.close_rounded : Icons.check_rounded,
-              size: 24,
-              color: w.wrong ? AppColors.paper : AppColors.dark,
+              w.wrong
+                  ? Icons.close_rounded
+                  : w.stepped
+                  ? Icons.check_rounded
+                  : Icons.star_rounded,
+              size: w.wrong || w.stepped ? 24 : 18,
+              color: w.wrong
+                  ? AppColors.paper
+                  : w.stepped
+                  ? AppColors.dark
+                  : AppColors.sageDeep,
             )
           // A plain felt stone with one small amber stud.
           : Transform.rotate(

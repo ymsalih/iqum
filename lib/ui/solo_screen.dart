@@ -40,6 +40,45 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
   /// pair's result (sound, note, counter) stays hidden.
   int _judgeAt = 0;
   Timer? _judge;
+
+  /// "Get ready" count (3, 2, 1) before a level's study phase starts by
+  /// itself; null when no countdown is running.
+  int? _countdown;
+  Timer? _countTimer;
+
+  /// Memory Path and Sequence Memory open straight into their study phase.
+  void _autoStart() {
+    if (_disposed || _paused || _countTimer != null || !_loaded) return;
+    final waiting =
+        path?.phase == GamePhase.ready || sequence?.phase == GamePhase.ready;
+    if (!waiting || _hearts == 0) return;
+    setState(() => _countdown = 3);
+    _countTimer = Timer.periodic(const Duration(milliseconds: 700), (timer) {
+      if (!mounted || _paused) return;
+      final next = (_countdown ?? 1) - 1;
+      if (next > 0) {
+        setState(() => _countdown = next);
+        return;
+      }
+      timer.cancel();
+      _countTimer = null;
+      _countdown = null;
+      if (path?.phase == GamePhase.ready) {
+        path!.start(now);
+      } else if (sequence?.phase == GamePhase.ready) {
+        sequence!.start(now);
+      }
+      setState(() {});
+      unawaited(_save());
+    });
+  }
+
+  void _stopCountdown() {
+    _countTimer?.cancel();
+    _countTimer = null;
+    _countdown = null;
+  }
+
   late String _scope;
   Map<String, dynamic>? _pausedSnapshot;
   Future<void> _writes = Future.value();
@@ -78,7 +117,11 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     _runTimer();
     await app.refreshLife();
     if (!mounted) return;
-    if (_hearts == 0 && !_inProgress) unawaited(showNoHearts(context, app));
+    if (_hearts == 0 && !_inProgress) {
+      unawaited(showNoHearts(context, app));
+    } else {
+      _autoStart();
+    }
   }
 
   void _restore(Map<String, dynamic>? data) {
@@ -183,6 +226,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     } else {
       setState(() {});
       unawaited(_save());
+      if (phase == GamePhase.ready) _autoStart();
     }
   }
 
@@ -192,6 +236,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     if (state != AppLifecycleState.resumed && !_paused) {
       _paused = true;
       _timer?.cancel();
+      _stopCountdown();
       matching?.pause(now);
       sequence?.pause(now);
       _pausedSnapshot = _snapshot();
@@ -202,6 +247,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
       _runTimer();
       unawaited(app.refreshLife());
       setState(() {});
+      _autoStart();
     }
   }
 
@@ -258,6 +304,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     }
     setState(() {});
     unawaited(_save());
+    _autoStart();
   }
 
   Future<void> _finish() async {
@@ -413,8 +460,10 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
         path = PathGame(widget.level, fails: path!.fails);
         break;
     }
+    _stopCountdown();
     setState(() {});
     await _save();
+    _autoStart();
   }
 
   @override
@@ -423,6 +472,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _judge?.cancel();
+    _countTimer?.cancel();
     if (_loaded && !_done) {
       matching?.pause(now);
       sequence?.pause(now);
@@ -632,13 +682,33 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
         tileAspect: .9,
       ),
       header: [
+        _Callout(
+          state: failed
+              ? _CallState.burned
+              : _countdown != null
+              ? _CallState.ready
+              : preview
+              ? _CallState.study
+              : answering
+              ? _CallState.play
+              : _hearts == 0
+              ? _CallState.resting
+              : _CallState.ready,
+          countdown: _countdown,
+          study: 'Kartları ezberle!',
+          studyHint:
+              '${spec.count} hayvanı ve sırasını süre bitene kadar aklında tut.',
+          play: 'Sıra sende!',
+          playHint: 'Kartları sırayla bul: ${g.answered}/${spec.count}',
+          burned: g.timedOut ? 'Süre doldu! −1 can' : 'Yanlış hayvan! −1 can',
+        ),
         ClockStrip(
           now: () => app.now,
           label: preview
-              ? 'Ezberleme zamanı'
+              ? 'Ezber süresi'
               : answering
-              ? 'Sıradaki hayvanı seç'
-              : '${spec.count} kartın sırasını hatırla',
+              ? 'Cevap süresi'
+              : '${spec.count} kart',
           deadline: g.deadline,
           totalMs: preview ? spec.previewMs : spec.answerMs,
           trailing: g.deadline == null
@@ -703,28 +773,18 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
                 )
                 .toList(),
           ),
-        ] else if (preview)
-          const GameNote('Hayvanları ve sıralarını aklında tut.')
-        else ...[
+        ] else ...[
           GameNote(
             g.fails == 0
                 ? 'Hatasız geçersen 3 yıldız. Yanlış cevap veya süre −1 can.'
                 : 'Yanlış cevap veya süre −1 can.',
           ),
-          IqumButton(
-            _hearts == 0 ? 'Canların yenileniyor' : 'Kartları göster',
-            accent: _hearts > 0,
-            icon: _hearts == 0
-                ? Icons.hourglass_bottom_rounded
-                : Icons.visibility_rounded,
-            onPressed: _hearts == 0
-                ? () => showNoHearts(context, app)
-                : () {
-                    g.start(now);
-                    setState(() {});
-                    unawaited(_save());
-                  },
-          ),
+          if (_hearts == 0 && !preview)
+            IqumButton(
+              'Canların yenileniyor',
+              icon: Icons.hourglass_bottom_rounded,
+              onPressed: () => showNoHearts(context, app),
+            ),
         ],
       ],
     );
@@ -742,6 +802,8 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
       spacingY: 6,
       frame: const Size(30, 38 + 2 * 28),
     );
+    // The route is shown on the table itself: its tiles lie face up in
+    // green while the clock runs, then turn over and only memory is left.
     final board = Board(
       path: true,
       child: Column(
@@ -765,6 +827,7 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
                 key: ValueKey('path-$row-$col'),
                 row: row,
                 column: col,
+                lit: preview && level.route[row] == col,
                 stepped: row < g.row && level.route[row] == col,
                 wrong:
                     g.phase == GamePhase.feedback &&
@@ -786,78 +849,49 @@ class _SoloScreenState extends ConsumerState<SoloScreen>
     return (
       fit: fit,
       header: [
+        _Callout(
+          state: g.phase == GamePhase.feedback
+              ? _CallState.burned
+              : _countdown != null
+              ? _CallState.ready
+              : preview
+              ? _CallState.study
+              : g.phase == GamePhase.playing
+              ? _CallState.play
+              : hearts == 0
+              ? _CallState.resting
+              : _CallState.ready,
+          countdown: _countdown,
+          study: 'Yolu ezberle!',
+          studyHint: 'Yeşil karolar süre bitince kapanacak.',
+          play: 'Sıra sende!',
+          playHint: 'En alttan başla: adım ${g.row}/${level.rows}',
+          burned: 'Yanlış karo! −1 can',
+          burnedHint: 'Aynı yol yeniden gösterilecek.',
+        ),
         ClockStrip(
           now: () => app.now,
           label: preview
-              ? 'Yolu aklında tut'
-              : g.phase == GamePhase.playing
-              ? 'Bir sonraki sıraya bas'
-              : 'Bir adım sonrasını düşün.',
+              ? 'Ezber süresi'
+              : '${level.columns}×${level.rows} tahta · '
+                    '${level.previewMs ~/ 1000} sn ezber',
           deadline: preview ? g.deadline : null,
           totalMs: level.previewMs,
           trailing: preview ? null : 'Adım ${g.row}/${level.rows}',
         ),
       ],
-      // The route is shown on a card dealt above the face-down board; when
-      // the time is up the card is taken away and only memory is left.
-      board: Stack(
-        children: [
-          board,
-          Positioned.fill(
-            child: AnimatedSwitcher(
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : MotionTokens.settle,
-              switchInCurve: Curves.easeOutBack,
-              switchOutCurve: Curves.easeIn,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: ScaleTransition(
-                  scale: Tween(begin: .7, end: 1.0).animate(animation),
-                  child: child,
-                ),
-              ),
-              child: preview
-                  ? Center(
-                      key: const ValueKey('route-card'),
-                      child: FractionallySizedBox(
-                        widthFactor: .9,
-                        heightFactor: 1,
-                        child: _RouteCard(level: level),
-                      ),
-                    )
-                  : const SizedBox.shrink(key: ValueKey('no-card')),
-            ),
-          ),
-        ],
-      ),
+      board: board,
       footer: [
         GameNote(
-          preview
-              ? 'Yeşil yolu aklında tut. Kart birazdan kalkacak.'
-              : g.phase == GamePhase.playing
-              ? 'En alttan başla. Sadece sıradaki karoyu çevir.'
-              : g.phase == GamePhase.feedback
-              ? 'Yanlış adım. −1 can. Aynı yol yeniden başlayacak.'
-              : 'Yol bir kartta gösterilecek. Sonra karoları hafızanla çevir.',
-          error: g.phase == GamePhase.feedback,
+          g.phase == GamePhase.playing
+              ? 'Her sıradan yalnızca bir karo güvenli. Yanlış karo −1 can.'
+              : 'Hatasız geçersen 3 yıldız.',
         ),
-        if (g.phase == GamePhase.ready || g.phase == GamePhase.feedback)
+        if (hearts == 0 && g.phase != GamePhase.playing)
           IqumButton(
-            hearts == 0 ? 'Canların yenileniyor' : 'Yolu göster',
-            accent: hearts > 0,
-            icon: hearts == 0
-                ? Icons.hourglass_bottom_rounded
-                : Icons.visibility_rounded,
-            onPressed: hearts == 0
-                ? () => showNoHearts(context, app)
-                : g.phase == GamePhase.feedback
-                ? null
-                : () {
-                    g.start(now);
-                    setState(() {});
-                    unawaited(_save());
-                  },
+            'Canların yenileniyor',
+            icon: Icons.hourglass_bottom_rounded,
+            onPressed: () => showNoHearts(context, app),
           ),
       ],
     );
@@ -904,122 +938,134 @@ typedef _Screen = ({
   List<Widget> footer,
 });
 
-/// The route of a Memory Path level on a porcelain card: green stones from
-/// the start at the bottom to the finish at the top. Painted once.
-class _RouteCard extends StatelessWidget {
-  const _RouteCard({required this.level});
-  final LevelDefinition level;
+enum _CallState { ready, study, play, burned, resting }
+
+/// The call at the top of a memory level: "get ready 3-2-1", "memorise!",
+/// "your turn!" or "burned". Each change pops in once; nothing loops.
+class _Callout extends StatelessWidget {
+  const _Callout({
+    required this.state,
+    required this.study,
+    required this.studyHint,
+    required this.play,
+    required this.playHint,
+    required this.burned,
+    this.burnedHint,
+    this.countdown,
+  });
+  final _CallState state;
+  final int? countdown;
+  final String study, studyHint, play, playHint, burned;
+  final String? burnedHint;
+
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'Yol kartı: yeşil karoları aklında tut',
-    child: Transform.rotate(
-      angle: -.02,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        decoration: BoxDecoration(
-          color: AppColors.paper,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.dark, width: 3),
-          boxShadow: AppColors.lip(AppColors.shade, 6),
+  Widget build(BuildContext context) {
+    final (
+      Color face,
+      Color lip,
+      Color ink,
+      Color soft,
+      IconData icon,
+    ) = switch (state) {
+      _CallState.ready => (
+        AppColors.petrol,
+        AppColors.dark,
+        AppColors.paper,
+        AppColors.goldLight,
+        Icons.timer_rounded,
+      ),
+      _CallState.study => (
+        AppColors.gold,
+        AppColors.amberDeep,
+        AppColors.text,
+        AppColors.dark,
+        Icons.visibility_rounded,
+      ),
+      _CallState.play => (
+        AppColors.sage,
+        AppColors.sageDeep,
+        AppColors.text,
+        AppColors.dark,
+        Icons.directions_run_rounded,
+      ),
+      _CallState.burned => (
+        AppColors.red,
+        AppColors.redDeep,
+        AppColors.paper,
+        AppColors.paper,
+        Icons.heart_broken_rounded,
+      ),
+      _CallState.resting => (
+        AppColors.shade,
+        AppColors.line,
+        AppColors.text,
+        AppColors.muted,
+        Icons.hourglass_bottom_rounded,
+      ),
+    };
+    final (String title, String? hint) = switch (state) {
+      _CallState.ready => ('Hazır ol!', studyHint),
+      _CallState.study => (study, studyHint),
+      _CallState.play => (play, playHint),
+      _CallState.burned => (burned, burnedHint),
+      _CallState.resting => (
+        'Kısa bir mola',
+        'Canın yenilenince level seni bekliyor.',
+      ),
+    };
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AnimatedSwitcher(
+        duration: reduced ? Duration.zero : MotionTokens.feedback,
+        switchInCurve: Curves.easeOutBack,
+        transitionBuilder: (child, animation) => ScaleTransition(
+          scale: Tween(begin: .9, end: 1.0).animate(animation),
+          child: child,
         ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.flag_rounded,
-                  size: 15,
-                  color: AppColors.amberDeep,
-                ),
-                const SizedBox(width: 4),
-                Text('BİTİŞ', style: AppColors.eyebrow),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: level.columns * 1.3 / level.rows,
-                  child: RepaintBoundary(
-                    child: CustomPaint(painter: _RoutePainter(level)),
-                  ),
+        child: Piece(
+          key: ValueKey('$state-$countdown'),
+          color: face,
+          lip: lip,
+          border: lip,
+          radius: 18,
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+          child: Row(
+            children: [
+              Icon(icon, color: soft, size: 26),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppColors.display(21).copyWith(color: ink),
+                    ),
+                    if (hint != null)
+                      Text(
+                        hint,
+                        style: AppColors.caption.copyWith(
+                          color: soft,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.directions_walk_rounded,
-                  size: 15,
-                  color: AppColors.green,
+              if (state == _CallState.ready && countdown != null)
+                Text(
+                  '$countdown',
+                  style: AppColors.display(
+                    36,
+                  ).copyWith(color: AppColors.goldLight, height: 1),
                 ),
-                const SizedBox(width: 4),
-                Text('BAŞLANGIÇ', style: AppColors.eyebrow),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
-class _RoutePainter extends CustomPainter {
-  const _RoutePainter(this.level);
-  final LevelDefinition level;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cols = level.columns, rows = level.rows;
-    final gap = math.max(3.0, size.width * .025);
-    final w = (size.width - gap * (cols - 1)) / cols,
-        h = (size.height - gap * (rows - 1)) / rows;
-    final empty = Path(), lit = Path(), lip = Path();
-    final centers = <Offset>[];
-    for (var r = 0; r < rows; r++) {
-      final y = (rows - 1 - r) * (h + gap);
-      for (var c = 0; c < cols; c++) {
-        final rect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(c * (w + gap), y, w, h - 2),
-          Radius.circular(math.min(8, w * .18)),
-        );
-        if (level.route[r] == c) {
-          lip.addRRect(rect.shift(const Offset(0, 2)));
-          lit.addRRect(rect);
-          centers.add(rect.center);
-        } else {
-          empty.addRRect(rect);
-        }
-      }
-    }
-    canvas.drawPath(empty, Paint()..color = AppColors.shade);
-    canvas.drawPath(lip, Paint()..color = AppColors.sageDeep);
-    canvas.drawPath(lit, Paint()..color = AppColors.sage);
-    // Footsteps line through the route, bottom to top.
-    final line = Path()..moveTo(centers.first.dx, centers.first.dy);
-    for (final c in centers.skip(1)) {
-      line.lineTo(c.dx, c.dy);
-    }
-    canvas.drawPath(
-      line,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(2.5, w * .07)
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..color = AppColors.green,
     );
-    final dots = Path();
-    for (final c in centers) {
-      dots.addOval(Rect.fromCircle(center: c, radius: math.max(3, w * .09)));
-    }
-    canvas.drawPath(dots, Paint()..color = AppColors.dark);
   }
-
-  @override
-  bool shouldRepaint(_RoutePainter old) => old.level.number != level.number;
 }
 
 class _BoardLabel extends StatelessWidget {

@@ -165,7 +165,7 @@ void main() {
           await tester.tap(find.text('Level 1').first);
           await io();
           await check('sequence');
-          await tester.tap(find.text('Kartları göster'));
+          await wait(const Duration(milliseconds: 2200)); // 3-2-1 countdown
           await io();
           await wait(const Duration(milliseconds: 500));
           await check('sequence-preview');
@@ -187,7 +187,7 @@ void main() {
 
           // The largest sequence (12 cards) while answering.
           await open(GameKind.sequence, 30);
-          await tester.tap(find.text('Kartları göster'));
+          await wait(const Duration(milliseconds: 2200)); // 3-2-1 countdown
           await io();
           await wait(Duration(milliseconds: SequenceLevel(30).previewMs + 300));
           await check('sequence-30-answer');
@@ -213,7 +213,7 @@ void main() {
           await tester.tap(find.text('Devam et'));
           await io();
           await tester.pumpAndSettle();
-          await tester.tap(find.text('Yolu göster'));
+          await wait(const Duration(milliseconds: 2200)); // 3-2-1 countdown
           await io();
           await wait(const Duration(milliseconds: 600));
           await check('path-preview');

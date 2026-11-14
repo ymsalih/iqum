@@ -49,7 +49,8 @@ void main() {
         await screenshot('home');
         await tester.tap(find.text('Devam et'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Yolu göster'));
+        // Starts by itself after the 3-2-1 countdown.
+        await tester.pump(const Duration(milliseconds: 2400));
         await tester.pump(const Duration(milliseconds: 600));
         await screenshot('path-preview');
         final preview = Duration(milliseconds: LevelDefinition(1).previewMs);
@@ -66,7 +67,8 @@ void main() {
         await tester.tap(wrong);
         await tester.pump(const Duration(milliseconds: 1400));
         expect(controller.progress.life.count, 3);
-        await tester.tap(find.text('Yolu göster'));
+        // Starts by itself after the 3-2-1 countdown.
+        await tester.pump(const Duration(milliseconds: 2400));
         await tester.pump(preview + const Duration(milliseconds: 300));
         final route = LevelDefinition(1).route;
         for (var row = 0; row < route.length; row++) {
@@ -95,7 +97,8 @@ void main() {
         await tester.ensureVisible(find.text('Level 1').first);
         await tester.tap(find.text('Level 1').first);
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Kartları göster'));
+        // Starts by itself after the 3-2-1 countdown.
+        await tester.pump(const Duration(milliseconds: 2400));
         await tester.pump(const Duration(milliseconds: 400));
         final sequence = tester
             .widgetList<MemoryTile>(find.byType(MemoryTile))
