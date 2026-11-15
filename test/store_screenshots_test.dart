@@ -193,7 +193,7 @@ void main() {
       await back();
 
       // Card Matching: three pairs found, one card turned over.
-      await open(const SoloScreen(GameKind.matching, level: 13));
+      await open(const SoloScreen(GameKind.matching, level: 3));
       List<MemoryTile> tiles() =>
           tester.widgetList<MemoryTile>(find.byType(MemoryTile)).toList();
       Future<void> tapTile(int i) async {

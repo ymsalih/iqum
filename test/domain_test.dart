@@ -37,37 +37,39 @@ void main() {
     });
   });
   test('every path level is harder and its rows are independent', () {
-    (int, int)? previous;
+    (int, int, int)? previous;
     for (var n = 1; n <= 30; n++) {
       final level = LevelDefinition(n), again = LevelDefinition(n);
       // Same route every attempt at a level.
       expect(level.route, again.route);
       expect(level.route.length, level.rows);
-      // Harder than the level before: more steps, or as many on a wider
-      // board.
-      final now = (level.rows, level.columns);
+      // Harder than the level before: more steps, or a wider board, or the
+      // same board with less study time.
+      final now = (level.rows, level.columns, -level.previewMs);
       if (previous != null) {
-        expect(
-          now.$1 > previous.$1 ||
-              (now.$1 == previous.$1 && now.$2 > previous.$2),
-          isTrue,
-          reason: 'level $n',
-        );
+        final harder =
+            now.$1 > previous.$1 ||
+            (now.$1 == previous.$1 && now.$2 > previous.$2) ||
+            (now.$1 == previous.$1 &&
+                now.$2 == previous.$2 &&
+                now.$3 > previous.$3);
+        expect(harder, isTrue, reason: 'level $n');
       }
       previous = now;
-      // Study time: half a second per tile, rounded down.
-      expect(level.previewMs, level.rows * level.columns ~/ 2 * 1000);
+      expect(level.previewMs, greaterThanOrEqualTo(10000));
       for (var r = 0; r < level.rows; r++) {
         expect(level.route[r], inInclusiveRange(0, level.columns - 1));
         if (r > 0) {
           final jump = (level.route[r] - level.route[r - 1]).abs();
-          expect(jump, greaterThanOrEqualTo(level.columns < 4 ? 1 : 2));
+          expect(jump, greaterThanOrEqualTo(level.columns < 5 ? 1 : 2));
         }
       }
     }
-    expect((LevelDefinition(1).columns, LevelDefinition(1).rows), (3, 3));
-    expect(LevelDefinition(1).previewMs, 4000);
-    expect((LevelDefinition(30).columns, LevelDefinition(30).rows), (5, 12));
+    // Starts tall: 5 rows × 4 columns, half a second per tile.
+    expect((LevelDefinition(1).rows, LevelDefinition(1).columns), (5, 4));
+    expect(LevelDefinition(1).previewMs, 10000);
+    expect((LevelDefinition(8).rows, LevelDefinition(8).columns), (12, 4));
+    expect((LevelDefinition(30).rows, LevelDefinition(30).columns), (12, 6));
   });
   group('Matching levels', () {
     test('board grows from 3 to 12 pairs with 1.5 moves per card', () {
@@ -79,14 +81,15 @@ void main() {
         expect(level.columns * level.rows, level.cards);
         pairs = level.pairs;
       }
-      expect(MatchingLevel(1).pairs, 3);
-      expect(MatchingLevel(13).cards, 16);
-      expect(MatchingLevel(13).moves, 24);
+      expect(MatchingLevel(1).cards, 16);
+      expect(MatchingLevel(1).moves, 24);
+      expect(MatchingLevel(7).cards, 20);
+      expect(MatchingLevel(30).pairs, 12);
       expect(MatchingLevel(30).pairs, 12);
     });
     test('duplicates are ignored and mismatch locks input for 900 ms', () {
-      final game = MatchingGame(level: 13, seed: 7),
-          different = MatchingGame(level: 13, seed: 7);
+      final game = MatchingGame(level: 1, seed: 7),
+          different = MatchingGame(level: 1, seed: 7);
       expect(game.board, different.board);
       expect(game.board.length, 16);
       final other = game.board.indexWhere((a) => a != game.board[0]);
@@ -103,7 +106,7 @@ void main() {
       expect(game.opened, isEmpty);
     });
     test('a perfect board finishes with three stars and restores intact', () {
-      final game = MatchingGame(level: 13, seed: 12);
+      final game = MatchingGame(level: 1, seed: 12);
       var now = 1000;
       for (final animal in game.board.toSet()) {
         final indexes = [
@@ -120,16 +123,16 @@ void main() {
       expect(game.stars, 3);
       final restored = MatchingGame.restore(game.toJson(now), now + 99999);
       expect(restored.board, game.board);
-      expect(restored.level, 13);
+      expect(restored.level, 1);
       expect(restored.matched, game.matched);
     });
     test('running out of moves fails the level', () {
       final game = MatchingGame(level: 1, seed: 3);
-      expect(game.spec.moves, 9);
+      expect(game.spec.moves, 24);
       final a = game.board[0];
       final other = game.board.indexWhere((x) => x != a);
       var now = 0;
-      for (var i = 0; i < 9; i++) {
+      for (var i = 0; i < game.spec.moves; i++) {
         game.select(0, now);
         game.select(other, now + 1);
         now += 1000;
@@ -154,7 +157,7 @@ void main() {
         count = level.count;
         perCard = level.msPerCard;
       }
-      expect(SequenceLevel(1).count, 4);
+      expect(SequenceLevel(1).count, 6);
       expect(SequenceLevel(30).count, 12);
     });
     test('a wrong animal fails the level', () {
@@ -213,16 +216,20 @@ void main() {
     'path rejects skipped rows, locks after one error and keeps the route',
     () {
       final game = PathGame(7);
+      final study = game.level.previewMs;
       game.start(0);
-      game.tick(7800);
+      game.tick(study);
       expect(game.step(1, 0), isNull);
-      expect(game.step(0, (game.level.route[0] + 1) % 3), false);
+      expect(
+        game.step(0, (game.level.route[0] + 1) % game.level.columns),
+        false,
+      );
       expect(game.fails, 1);
       expect(game.step(0, game.level.route[0]), isNull);
       final route = game.level.route;
       game.retry();
-      game.start(10000);
-      game.tick(17800);
+      game.start(100000);
+      game.tick(100000 + study);
       expect(game.level.route, route);
       for (var r = 0; r < game.level.rows; r++) {
         expect(game.step(r, route[r]), true);

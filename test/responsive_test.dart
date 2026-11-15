@@ -198,7 +198,7 @@ void main() {
           await tester.tap(find.text('Level 1').last);
           await io();
           await tester.pumpAndSettle();
-          expect(tiles(), 6);
+          expect(tiles(), MatchingLevel(1).cards);
           await tester.tap(find.byWidgetPredicate(isTile).first);
           await check('matching');
           await back();

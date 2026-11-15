@@ -353,9 +353,9 @@ class SequenceLevel {
   SequenceLevel(this.number) : assert(number >= 1 && number <= levelCount);
   final int number;
 
-  /// Every level is harder than the one before: the cards grow from 4 to
+  /// Every level is harder than the one before: the cards grow from 6 to
   /// 12 and the study time per card shrinks on every level (1.2 → 0.62 s).
-  int get count => 4 + (number - 1) * 8 ~/ 29;
+  int get count => 6 + (number - 1) * 6 ~/ 29;
   int get columns => switch (count) {
     3 => 3,
     4 => 2,
@@ -373,19 +373,16 @@ class SequenceLevel {
 class MatchingLevel {
   MatchingLevel(this.number) : assert(number >= 1 && number <= levelCount);
   final int number;
-  int get pairs => number <= 3
-      ? 3
-      : number <= 7
-      ? 4
-      : number <= 12
-      ? 6
-      : number <= 18
+
+  /// Starts on a full 4×4 table (8 pairs), then 4×5 and 4×6. The game has
+  /// 12 animals, so 12 pairs is the largest board.
+  int get pairs => number <= 6
       ? 8
-      : number <= 24
+      : number <= 14
       ? 10
       : 12;
   int get cards => pairs * 2;
-  int get columns => cards == 6 ? 3 : 4;
+  int get columns => 4;
   int get rows => cards ~/ columns;
   int get moves => cards * 3 ~/ 2;
 
@@ -401,28 +398,36 @@ class LevelDefinition {
   LevelDefinition(this.number) : assert(number >= 1 && number <= 30);
   final int number;
 
-  /// Every level is harder than the one before: each three levels add a
-  /// row (one more step to remember) and within them the board widens
-  /// from 3 to 5 columns (more places a step can hide). 3×3 … 5×12.
-  int get columns => 3 + (number - 1) % 3;
-  int get rows => 3 + (number - 1) ~/ 3;
+  /// Every level is harder than the one before. Levels 1–8 grow the board
+  /// upwards on 4 columns (5×4 … 12×4: one more step each level). Then the
+  /// board widens to 5 and 6 columns at 12 rows, and the study time per
+  /// tile shrinks a little on every level.
+  int get rows => min(12, 4 + number);
+  int get columns => number <= 8
+      ? 4
+      : number <= 18
+      ? 5
+      : 6;
 
-  /// Study time: half a second per tile, rounded down to whole seconds
-  /// (3×3 → 4 s, 5×12 → 30 s).
-  int get previewMs => columns * rows ~/ 2 * 1000;
+  /// Study time: half a second per tile, rounded down (5×4 → 10 s); after
+  /// level 8 one second less on every level, so no two levels feel alike.
+  int get previewMs => (columns * rows ~/ 2 - max<int>(0, number - 8)) * 1000;
 
   /// The safe tile of each row, bottom to top. Rows are independent: a
-  /// step never stays in the same column, and on boards of 4–5 columns it
-  /// always jumps at least one column, so the route never reads as a line.
+  /// step never stays in the same column. On 5–6 columns it always jumps
+  /// at least one column; on 4 columns a jump is three times as likely as
+  /// a neighbouring tile (a strict jump would make the route predictable).
   /// Seeded by the level number: a retry shows the same route.
   List<int> get route {
     final rng = Random(number * 7919 + 17);
     final steps = <int>[rng.nextInt(columns)];
     for (var r = 1; r < rows; r++) {
       final previous = steps.last;
-      final choices = [
+      final choices = <int>[
         for (var c = 0; c < columns; c++)
-          if (c != previous && (columns < 4 || (c - previous).abs() >= 2)) c,
+          if (c != previous)
+            for (var w = 0; w < ((c - previous).abs() >= 2 ? 3 : 1); w++)
+              if (columns < 5 || (c - previous).abs() >= 2) c,
       ];
       steps.add(choices[rng.nextInt(choices.length)]);
     }
